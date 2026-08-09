@@ -24,17 +24,26 @@
 	const turnPivotDistance = 0.75;
 	const minimumTurnRadius = 4.5;
 	const lateralSpeed = 4;
+	const walkPastLastPosterDistance = 2;
+	const movementBoundarySoftness = 3;
+	const maximumCameraDistance =
+		Math.max(...posters.map((poster) => poster.distance)) + walkPastLastPosterDistance;
 	let angularVelocity = 0;
 	let movementVelocity = 0;
 
 	const turnSmoothness = 10;
-	const movementSmoothness = 10;
+	const movementSmoothness = 6;
 
 	const worldCameraPosition = new Vector3();
 	let cameraPosition = $state<[number, number, number]>([0, 0, 0]);
 
 	let pivot = $state.raw<Group | undefined>(undefined);
 	let camera = $state.raw<Group | undefined>(undefined);
+
+	const softenMovementNearBoundary = (remainingDistance: number) => {
+		const t = clamp(remainingDistance / movementBoundarySoftness, 0, 1);
+		return t * t * (3 - 2 * t);
+	};
 
 	keyboard.on('keyup', (event) => {
 		Controls.forEach((ControlCombination) => {
@@ -75,11 +84,25 @@
 			angularVelocity = damp(angularVelocity, targetAngularVelocity, turnSmoothness, delta);
 			pivot.rotation.y -= angularVelocity * delta;
 
-			const targetMovementVelocity = moveDirection * moveSpeed;
+			const cameraDistance = -camera.position.z;
+			const remainingDistance =
+				moveDirection > 0
+					? maximumCameraDistance - cameraDistance
+					: cameraDistance - turnPivotDistance;
+			const boundarySpeedMultiplier =
+				moveDirection === 0 ? 1 : softenMovementNearBoundary(remainingDistance);
+			const targetMovementVelocity = moveDirection * moveSpeed * boundarySpeedMultiplier;
 			movementVelocity = damp(movementVelocity, targetMovementVelocity, movementSmoothness, delta);
 
 			camera.position.z -= movementVelocity * delta;
-			camera.position.z = Math.min(camera.position.z, -turnPivotDistance);
+			camera.position.z = clamp(camera.position.z, -maximumCameraDistance, -turnPivotDistance);
+
+			if (
+				(camera.position.z === -maximumCameraDistance && movementVelocity > 0) ||
+				(camera.position.z === -turnPivotDistance && movementVelocity < 0)
+			) {
+				movementVelocity = 0;
+			}
 
 			camera.getWorldPosition(worldCameraPosition);
 
