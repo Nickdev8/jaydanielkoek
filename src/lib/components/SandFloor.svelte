@@ -1,21 +1,37 @@
 <script lang="ts">
 	import { T } from '@threlte/core';
+	import { Color } from 'three';
 
-	let { floorHeight = -1.4, radius = 50 } = $props<{
+	let {
+		floorHeight = -1.4,
+		radius = 50,
+		backgroundColor = '#080c15',
+		fogDensity = 0.052
+	} = $props<{
 		floorHeight?: number;
 		radius?: number;
+		backgroundColor?: string;
+		fogDensity?: number;
 	}>();
 
 	const sandUniforms = {
 		// Anything around alphaLow becomes transparent;
 		// anything around alphaHigh becomes opaque.
 		alphaLow: { value: 0.055 },
-		alphaHigh: { value: 0.14 }
+		alphaHigh: { value: 0.14 },
+		fogColor: { value: new Color('#080c15') },
+		fogDensity: { value: 0.052 }
 	};
+
+	$effect(() => {
+		sandUniforms.fogColor.value.set(backgroundColor);
+		sandUniforms.fogDensity.value = fogDensity;
+	});
 
 	const sandVertexShader = `
         varying vec2 vUv;
         varying vec3 vWorldPosition;
+        varying vec3 vViewPosition;
 
         void main() {
             vUv = uv;
@@ -23,16 +39,22 @@
             vec4 worldPosition = modelMatrix * vec4(position, 1.0);
             vWorldPosition = worldPosition.xyz;
 
-            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+            vec4 viewPosition = viewMatrix * worldPosition;
+            vViewPosition = viewPosition.xyz;
+
+            gl_Position = projectionMatrix * viewPosition;
         }
     `;
 
 	const sandFragmentShader = `
         varying vec2 vUv;
         varying vec3 vWorldPosition;
+        varying vec3 vViewPosition;
 
         uniform float alphaLow;
         uniform float alphaHigh;
+        uniform vec3 fogColor;
+        uniform float fogDensity;
 
         float hash21(vec2 p) {
             p = fract(p * vec2(123.34, 456.21));
@@ -119,61 +141,60 @@
         }
 
         void main() {
-            // Fixed square UV mapping. The offset prevents the noise field from
-            // having any meaningful relationship to the world's origin.
-            vec2 p = vUv * 5.5 + vec2(11.8, 27.4);
+            // A fixed, rectangular coordinate system: lines flow left to right
+            // and do not use the world origin as a centre.
+            vec2 p = vUv * vec2(5.4, 8.0) + vec2(11.8, 27.4);
 
-            float shape = warpedNoise(p * 0.72);
-            shape += (fbm(p * 2.1) - 0.5) * 0.16;
-            shape += (fbm(p * 5.0) - 0.5) * 0.05;
+            float broadWarp = (fbm(vec2(p.x * 0.50, p.y * 0.18)) - 0.5) * 2.2;
+            broadWarp += sin(p.x * 1.25 + fbm(p * 0.35) * 5.0) * 0.22;
+            broadWarp += sin(p.x * 2.70 - p.y * 0.16) * 0.08;
 
-            // Subtle blue-black sand-line palette.
-            vec3 c0 = vec3(0.055, 0.115, 0.145);
-            vec3 c1 = vec3(0.040, 0.090, 0.115);
-            vec3 c2 = vec3(0.022, 0.055, 0.070);
-            vec3 c3 = vec3(0.010, 0.025, 0.032);
+            // Horizontal, irregular contour bands like quiet ripples in sand.
+            float contourField = p.y * 1.25 + broadWarp;
+            float bandA = abs(fract(contourField * 5.5) - 0.5);
+            float bandB = abs(fract(contourField * 8.5 + 0.18) - 0.5);
+            float bandC = abs(fract(contourField * 13.0 + 0.41) - 0.5);
 
-            // Repeated slices through the noise field create flowing contour lines.
-            float bandCount = 22.0;
-            float bandA = abs(fract(shape * bandCount) - 0.5);
-            float bandB = abs(fract(shape * bandCount + 0.18) - 0.5);
-            float bandC = abs(fract(shape * bandCount + 0.36) - 0.5);
+            float lineA = 1.0 - smoothstep(0.018, 0.045, bandA);
+            float lineB = 1.0 - smoothstep(0.012, 0.030, bandB);
+            float lineC = 1.0 - smoothstep(0.008, 0.021, bandC);
 
-            float lineA = 1.0 - smoothstep(0.035, 0.065, bandA);
-            float lineB = 1.0 - smoothstep(0.040, 0.070, bandB);
-            float lineC = 1.0 - smoothstep(0.045, 0.080, bandC);
+            float lineDensity = smoothstep(0.20, 0.75, fbm(p * 0.58));
+            lineA *= mix(0.28, 1.0, lineDensity);
+            lineB *= mix(0.18, 0.80, lineDensity);
+            lineC *= mix(0.10, 0.58, lineDensity);
 
-            float directional = 0.5 + 0.5 * sin(p.x * 1.4 + fbm(p * 1.3) * 5.0);
-            lineA *= mix(0.75, 1.0, directional);
-            lineB *= mix(0.70, 1.0, 1.0 - directional);
-            lineC *= mix(0.80, 1.0, fbm(p * 0.8));
+            // Fine print-like dots, most noticeable in the near floor texture.
+            float dotsA = stipple(vUv, 105.0);
+            float dotsB = stipple(vUv + 3.71, 148.0);
+            float dots = max(dotsA, dotsB * 0.45);
+            dots *= smoothstep(0.38, 0.72, fbm(p * 0.82));
 
-            float dotsA = stipple(vWorldPosition.xz, 5.2);
-            float dotsB = stipple(vWorldPosition.xz + 17.7, 8.5);
+            vec3 wideLine = vec3(0.30, 0.32, 0.34);
+            vec3 fineLine = vec3(0.18, 0.20, 0.22);
+            vec3 hairline = vec3(0.09, 0.10, 0.12);
+            vec3 dotColor = vec3(0.12, 0.14, 0.16);
 
-            float stippleNoise = fbm(p * 1.8);
-            float dots = max(dotsA, dotsB * 0.55);
-            dots *= smoothstep(0.25, 0.72, stippleNoise);
-
-            // The floor is made only from lines and sparse sand grain.
             vec3 color = vec3(0.0);
-            color += c0 * lineA;
-            color += c1 * lineB * 0.95;
-            color += c2 * lineC * 0.90;
-            color += c3 * dots * 0.50;
-            color = min(color, c0);
+            color += wideLine * lineA;
+            color += fineLine * lineB;
+            color += hairline * lineC;
+            color += dotColor * dots * 0.34;
 
             float grain = hash21(gl_FragCoord.xy * 0.73);
-            color += (grain - 0.5) * 0.004;
+            color += (grain - 0.5) * 0.002;
 
-            // --------------------------------------------------
-            // ALPHA FROM LINES
-            // transparent between contours, visible on the sand lines
-            // --------------------------------------------------
             float lineMask = max(max(lineA, lineB), lineC);
-            float alphaFromLines = smoothstep(alphaLow, alphaHigh, lineMask + dots * 0.15);
+            float alphaFromLines = smoothstep(alphaLow, alphaHigh, lineMask + dots * 0.08);
+            // This matches Three.js FogExp2, which gets dense but has no hard
+            // cutoff where a distant poster would be completely removed.
+            float fogDepth = -vViewPosition.z;
+            float fogAmount = 1.0 - exp(-fogDensity * fogDensity * fogDepth * fogDepth);
+            color = mix(color, fogColor, fogAmount);
 
-            gl_FragColor = vec4(color, alphaFromLines);
+			// Fade opacity too. With transparent shader materials, colour mixing alone
+			// leaves dark lines visible over the background.
+			gl_FragColor = vec4(color, alphaFromLines * 0.28 * (1.0 - fogAmount));
         }
     `;
 </script>

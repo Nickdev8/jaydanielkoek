@@ -13,9 +13,11 @@
 
 	let {
 		maximumCameraDistance,
+		cameraStartRotation = 0,
 		cameraPosition = $bindable([0, 0, 0] as [number, number, number])
 	}: {
 		maximumCameraDistance: number;
+		cameraStartRotation?: number;
 		cameraPosition?: [number, number, number];
 	} = $props();
 
@@ -25,7 +27,6 @@
 	const turnPivotDistance = 0.75;
 	const minimumTurnRadius = 4.5;
 	const lateralSpeed = 4;
-	const walkPastLastPosterDistance = 2;
 	const movementBoundarySoftness = 3;
 	let angularVelocity = 0;
 	let movementVelocity = 0;
@@ -34,6 +35,7 @@
 	const movementSmoothness = 3;
 
 	const worldCameraPosition = new Vector3();
+	const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
 	let pivot = $state.raw<Group | undefined>(undefined);
 	let camera = $state.raw<Group | undefined>(undefined);
@@ -54,9 +56,6 @@
 	useTask(
 		(delta) => {
 			if (!pivot || !camera) return;
-
-			camera.getWorldPosition(worldCameraPosition);
-			cameraPosition = [worldCameraPosition.x, worldCameraPosition.y, worldCameraPosition.z];
 
 			let turnDirection = 0;
 			let moveDirection = 0;
@@ -113,7 +112,7 @@
 	);
 </script>
 
-<T.Group bind:ref={pivot}>
+<T.Group bind:ref={pivot} rotation.y={degreesToRadians(cameraStartRotation)}>
 	<T.Group bind:ref={camera} position={[0, 0, -turnPivotDistance]}>
 		<T.PerspectiveCamera makeDefault fov={45} />
 		<T.Mesh position={[0, 0, 0]}>
