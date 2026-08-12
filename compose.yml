@@ -5,3 +5,5 @@ services:
     restart: unless-stopped
     ports:
       - '127.0.0.1:3405:3000'
+    volumes:
+      - ./static/posters:/app/build/posters:ro
