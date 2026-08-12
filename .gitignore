@@ -24,4 +24,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Photography is deployed separately from the Git repository.
 static/posters/*
+
+# Blender working files are source material, not public site assets.
+static/models/**/*.blend
+static/models/**/*.blend[0-9]*

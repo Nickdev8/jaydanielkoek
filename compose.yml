@@ -1,0 +1,7 @@
+services:
+  jayden-daniel-koek:
+    build: .
+    container_name: jayden-daniel-koek
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3405:3000'
