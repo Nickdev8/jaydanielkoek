@@ -12,6 +12,7 @@ npm-debug.log*
 # Blender working files are not required to build or serve the site.
 static/models/**/*.blend
 static/models/**/*.blend[0-9]*
+static/models/render.png
 
 # Keep the deployed image lean; posters are copied to the server separately.
 static/posters
