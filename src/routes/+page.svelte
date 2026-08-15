@@ -76,10 +76,35 @@
 <svelte:head>
 	<title>Jayden Daniel Koek</title>
 	<meta name="description" content="Fotografie van Jayden Daniel Koek." />
+	<link
+		rel="preload"
+		as="image"
+		type="image/avif"
+		href="/models/render-1280.avif?v=20260812"
+		imagesrcset="/models/render-1280.avif?v=20260812 1280w, /models/render-1920.avif?v=20260812 1920w"
+		imagesizes="100vw"
+	/>
 </svelte:head>
 
 <div class="image-stage" class:showcase-active={showcaseActive} aria-hidden="true">
-	<img src="/models/render.png?v=20260811-2" alt="" style={`--image-shift: ${imageShift}px;`} />
+	<picture>
+		<source
+			type="image/avif"
+			srcset="/models/render-1280.avif?v=20260812 1280w, /models/render-1920.avif?v=20260812 1920w"
+			sizes="100vw"
+		/>
+		<source
+			type="image/webp"
+			srcset="/models/render-1280.webp?v=20260812 1280w, /models/render-1920.webp?v=20260812 1920w"
+			sizes="100vw"
+		/>
+		<img
+			src="/models/render-1920.webp?v=20260812"
+			alt=""
+			fetchpriority="high"
+			style={`--image-shift: ${imageShift}px;`}
+		/>
+	</picture>
 </div>
 <div class="wash" class:showcase-active={showcaseActive} aria-hidden="true"></div>
 
@@ -164,9 +189,14 @@
 		transition: opacity 450ms ease;
 	}
 
+	.image-stage picture,
 	.image-stage img {
 		width: 100%;
 		height: 100%;
+	}
+
+	.image-stage img {
+		display: block;
 		object-fit: cover;
 		object-position: 50% calc(50% + var(--image-shift));
 		transition: object-position 900ms cubic-bezier(0.16, 1, 0.3, 1);
