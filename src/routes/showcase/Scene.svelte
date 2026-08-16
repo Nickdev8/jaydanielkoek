@@ -8,15 +8,28 @@
 	import CameraController from './CameraController.svelte';
 	import PosterController from './PosterController.svelte';
 	import ReflectiveSurface from './ReflectiveSurface.svelte';
-	let { category, onready }: { category: ShowcaseCategory; onready?: () => void } = $props();
+	let {
+		category,
+		onready,
+		joystickTurn = 0,
+		joystickMove = 0
+	}: {
+		category: ShowcaseCategory;
+		onready?: () => void;
+		joystickTurn?: number;
+		joystickMove?: number;
+	} = $props();
 	const distanceByStep = [0, 5.63, 13, 20, 27];
 	const backgroundColor = '#080c15';
 	const fogDensity = 0.075;
 	const cameraStartRotation = 0;
 	const floorHeight = -1.4;
-	const maximumCameraStep = 2.4;
-	const maximumCameraDistance =
-		distanceByStep[2] + (distanceByStep[3] - distanceByStep[2]) * (maximumCameraStep - 2);
+	const { renderer, scene, dpr, size } = useThrelte();
+	const isMobileViewport = $derived(size.current.width < 768);
+	const maximumCameraStep = $derived(isMobileViewport ? 2.2 : 2.4);
+	const maximumCameraDistance = $derived(
+		distanceByStep[2] + (distanceByStep[3] - distanceByStep[2]) * (maximumCameraStep - 2)
+	);
 
 	let cameraPosition = $state<[number, number, number]>([0, 0, 0]);
 	let normalCameraPosition = $state<[number, number, number]>([0, 0, 0]);
@@ -24,9 +37,7 @@
 	let dustDrift = $state(0);
 	let postersReady = $state(false);
 	let hasReportedReady = false;
-	const { renderer, scene, dpr, size } = useThrelte();
 	const sceneBackground = new Color(backgroundColor);
-	const isMobileViewport = $derived(size.current.width < 768);
 
 	$effect(() => {
 		scene.background = sceneBackground;
@@ -68,6 +79,8 @@
 <CameraController
 	{maximumCameraDistance}
 	{cameraStartRotation}
+	{joystickTurn}
+	{joystickMove}
 	bind:cameraPosition
 	bind:normalCameraPosition
 	bind:cameraRotation

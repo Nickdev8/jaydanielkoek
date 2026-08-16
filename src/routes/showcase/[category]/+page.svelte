@@ -10,8 +10,15 @@
 	let showControlsHint = $state(false);
 	let isLoading = $state(true);
 	let pointerStart: { x: number; y: number; hintDismissDistance: number } | undefined;
+	let joystickElement = $state.raw<HTMLDivElement>();
+	let joystickTurn = $state(0);
+	let joystickMove = $state(0);
+	let joystickThumbX = $state(0);
+	let joystickThumbY = $state(0);
+	let joystickPointerId = $state<number>();
 
 	const movementKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
+	const joystickRadius = 38;
 
 	const openLensSelector = () => goto(`/lenses/${data.category.id}`);
 	const onready = () => {
@@ -20,6 +27,47 @@
 				isLoading = false;
 			});
 		});
+	};
+
+	const updateJoystick = (event: PointerEvent) => {
+		if (!joystickElement) return;
+
+		const bounds = joystickElement.getBoundingClientRect();
+		const offsetX = event.clientX - (bounds.left + bounds.width / 2);
+		const offsetY = event.clientY - (bounds.top + bounds.height / 2);
+		const distance = Math.hypot(offsetX, offsetY);
+		const scale = distance > joystickRadius ? joystickRadius / distance : 1;
+
+		joystickThumbX = offsetX * scale;
+		joystickThumbY = offsetY * scale;
+		joystickTurn = joystickThumbX / joystickRadius;
+		joystickMove = -joystickThumbY / joystickRadius;
+	};
+
+	const startJoystick = (event: PointerEvent) => {
+		if (event.pointerType === 'mouse') return;
+
+		event.preventDefault();
+		joystickPointerId = event.pointerId;
+		joystickElement?.setPointerCapture(event.pointerId);
+		updateJoystick(event);
+		showControlsHint = false;
+	};
+
+	const moveJoystick = (event: PointerEvent) => {
+		if (event.pointerId !== joystickPointerId) return;
+
+		updateJoystick(event);
+	};
+
+	const stopJoystick = (event: PointerEvent) => {
+		if (event.pointerId !== joystickPointerId) return;
+
+		joystickPointerId = undefined;
+		joystickTurn = 0;
+		joystickMove = 0;
+		joystickThumbX = 0;
+		joystickThumbY = 0;
 	};
 
 	onMount(() => {
@@ -85,18 +133,35 @@
 	</section>
 
 	<Canvas>
-		<Scene category={data.category} {onready} />
+		<Scene category={data.category} {onready} {joystickTurn} {joystickMove} />
 	</Canvas>
 
-	<button class="change-category" onclick={openLensSelector}>Change category</button>
-	<p class="category-hint">
-		Press Space to <a href={`/lenses/${data.category.id}`}>Change category</a>.
-	</p>
+	<button class="change-category" onclick={openLensSelector}>
+		<span>Change category</span>
+		<kbd>Space</kbd>
+	</button>
+
+	<div
+		class:active={joystickPointerId !== undefined}
+		class="joystick"
+		bind:this={joystickElement}
+		role="application"
+		aria-label="Move through the showcase"
+		onpointerdown={startJoystick}
+		onpointermove={moveJoystick}
+		onpointerup={stopJoystick}
+		onpointercancel={stopJoystick}
+	>
+		<div
+			class="joystick-thumb"
+			style:transform={`translate(${joystickThumbX}px, ${joystickThumbY}px)`}
+		></div>
+	</div>
 
 	{#if showControlsHint}
 		<p class="controls-hint">
 			<span class="desktop-controls">Use the arrow keys or drag to move</span>
-			<span class="mobile-controls">Drag to move</span>
+			<span class="mobile-controls">Use the joystick or drag to move</span>
 		</p>
 	{/if}
 
@@ -148,20 +213,6 @@
 			rgba(0, 0, 0, 0.9) 100%
 		);
 	}
-	.change-category {
-		position: absolute;
-		z-index: 1;
-		left: clamp(1.25rem, 3vw, 3rem);
-		bottom: clamp(1.25rem, 3vw, 3rem);
-		padding: 0.65rem 0.95rem;
-		border: 1px solid rgba(255, 255, 255, 0.75);
-		border-radius: 999px;
-		background: transparent;
-		color: #f5f7f2;
-		font: 0.95rem system-ui, sans-serif;
-		cursor: pointer;
-		transition: background-color 160ms ease, color 160ms ease;
-	}
 	.controls-hint {
 		position: absolute;
 		z-index: 1;
@@ -177,46 +228,59 @@
 	.mobile-controls {
 		display: none;
 	}
-	.category-hint {
+	.change-category {
 		position: absolute;
 		z-index: 1;
 		bottom: clamp(1.5rem, 4vw, 3rem);
-		left: 50%;
+		left: clamp(1.25rem, 3vw, 3rem);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.8rem;
+		padding: 0.75rem 0.9rem;
+		border: 1px solid rgba(245, 247, 242, 0.8);
+		border-radius: 8px;
+		background: rgba(8, 12, 21, 0.5);
+		color: #f5f7f2;
+		font: 0.95rem/1 system-ui, sans-serif;
+		cursor: pointer;
 		margin: 0;
+		transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+	}
+	.change-category kbd {
+		padding: 0.2rem 0.32rem;
+		border: 1px solid rgba(245, 247, 242, 0.36);
+		border-radius: 3px;
 		color: rgba(245, 247, 242, 0.72);
-		font: 300 clamp(0.75rem, 1vw, 0.9rem) system-ui, sans-serif;
-		letter-spacing: 0.03em;
-		transform: translateX(-50%);
-	}
-	.category-hint a {
-		color: inherit;
-		text-decoration: underline;
-		text-underline-offset: 0.2em;
-	}
-	.category-hint a:focus-visible {
-		outline: 1px solid currentColor;
-		outline-offset: 3px;
+		font: 0.68rem/1 system-ui, sans-serif;
 	}
 	.change-category:hover,
 	.change-category:focus-visible {
+		border-color: #fff;
 		background: #f5f7f2;
 		color: #080c15;
+	}
+	.change-category:hover kbd,
+	.change-category:focus-visible kbd {
+		border-color: rgba(8, 12, 21, 0.4);
+		color: inherit;
 	}
 	.change-category:focus-visible {
 		outline: 2px solid #fff;
 		outline-offset: 4px;
 	}
-	@media (min-width: 768px) {
-		.change-category {
-			display: none;
-		}
+	.joystick {
+		display: none;
 	}
 	@media (max-width: 767px) {
 		.controls-hint {
 			top: max(4.5rem, env(safe-area-inset-top));
 			bottom: auto;
 		}
-		.category-hint {
+		.change-category {
+			left: max(1.25rem, env(safe-area-inset-left));
+			bottom: max(1.75rem, env(safe-area-inset-bottom));
+		}
+		.change-category kbd {
 			display: none;
 		}
 		.desktop-controls {
@@ -224,6 +288,47 @@
 		}
 		.mobile-controls {
 			display: inline;
+		}
+		.joystick {
+			position: absolute;
+			z-index: 2;
+			right: max(1.25rem, env(safe-area-inset-right));
+			bottom: max(1.25rem, env(safe-area-inset-bottom));
+			display: grid;
+			width: 6.5rem;
+			height: 6.5rem;
+			place-items: center;
+			border: 1px solid rgba(245, 247, 242, 0.42);
+			border-radius: 50%;
+			background: rgba(8, 12, 21, 0.28);
+			touch-action: none;
+			user-select: none;
+		}
+		.joystick::before,
+		.joystick::after {
+			position: absolute;
+			background: rgba(245, 247, 242, 0.2);
+			content: '';
+		}
+		.joystick::before {
+			width: 1px;
+			height: 1.5rem;
+		}
+		.joystick::after {
+			width: 1.5rem;
+			height: 1px;
+		}
+		.joystick-thumb {
+			width: 2.7rem;
+			height: 2.7rem;
+			border: 1px solid rgba(245, 247, 242, 0.82);
+			border-radius: 50%;
+			background: rgba(245, 247, 242, 0.12);
+			transition: transform 90ms ease-out;
+		}
+		.joystick.active .joystick-thumb {
+			background: rgba(245, 247, 242, 0.24);
+			transition: none;
 		}
 	}
 </style>

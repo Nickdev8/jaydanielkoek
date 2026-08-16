@@ -104,15 +104,17 @@
 				<rect x="3" y="5" width="18" height="14" rx="1" />
 				<path d="m3 6 9 7 9-7" />
 			</svg>
+			<span>Contact</span>
 		</a>
 	{/if}
 
 	{#if page.url.pathname !== '/'}
-		<a class="utility-link" href="/" aria-label="Back to home">
+		<a class="utility-link" href="/" aria-label="Home">
 			<svg viewBox="0 0 24 24" aria-hidden="true">
 				<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z" />
 				<path d="M9 21v-6h6v6" />
 			</svg>
+			<span>Home</span>
 		</a>
 	{/if}
 </nav>
@@ -169,11 +171,11 @@
 	}
 
 	.utility-link {
-		display: grid;
-		width: 1.5rem;
-		aspect-ratio: 1;
-		place-items: center;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
 		color: #fff;
+		font: 0.75rem/1 system-ui, sans-serif;
 		mix-blend-mode: difference;
 	}
 

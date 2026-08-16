@@ -15,12 +15,16 @@
 	let {
 		maximumCameraDistance,
 		cameraStartRotation = 0,
+		joystickTurn = 0,
+		joystickMove = 0,
 		cameraPosition = $bindable([0, 0, 0] as [number, number, number]),
 		normalCameraPosition = $bindable([0, 0, 0] as [number, number, number]),
 		cameraRotation = $bindable(0)
 	}: {
 		maximumCameraDistance: number;
 		cameraStartRotation?: number;
+		joystickTurn?: number;
+		joystickMove?: number;
 		cameraPosition?: [number, number, number];
 		normalCameraPosition?: [number, number, number];
 		cameraRotation?: number;
@@ -33,7 +37,7 @@
 		45 + Math.min(12, Math.max(0, (0.9 - size.current.width / size.current.height) * 24))
 	);
 	const moveSpeed = 4.8;
-	const turnPivotDistance = 0.75;
+	const turnPivotDistance = $derived(size.current.width < 768 ? 0.45 : 0.75);
 	const minimumTurnRadius = 4.5;
 	const lateralSpeed = 3;
 	const innerTurnSpeed = 0.24;
@@ -227,11 +231,12 @@
 				);
 			});
 			const keyboardIsMoving = turnDirection !== 0 || moveDirection !== 0;
-			if (keyboardIsMoving) registerInteraction();
+			const joystickIsMoving = Math.abs(joystickTurn) > 0.01 || Math.abs(joystickMove) > 0.01;
+			if (keyboardIsMoving || joystickIsMoving) registerInteraction();
 			else secondsSinceInteraction += delta;
 
-			turnDirection = clamp(turnDirection + dragTurnInput + trackpadTurnInput, -1, 1);
-			moveDirection = clamp(moveDirection + dragMoveInput + trackpadMoveInput, -1, 1);
+			turnDirection = clamp(turnDirection + dragTurnInput + trackpadTurnInput + joystickTurn, -1, 1);
+			moveDirection = clamp(moveDirection + dragMoveInput + trackpadMoveInput + joystickMove, -1, 1);
 			if (moveDirection > 0) hasMovedForward = true;
 			dragTurnInput = damp(dragTurnInput, dragTurnTarget, dragResponse, delta);
 			dragMoveInput = damp(dragMoveInput, dragMoveTarget, dragResponse, delta);

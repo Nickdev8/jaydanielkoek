@@ -18,32 +18,6 @@
 					</a>
 				</dd>
 			</div>
-			<div>
-				<dt>Forest Clearing 1 ground skybox</dt>
-				<dd class="attribution">Created by Luis Vidal · CC Attribution licence</dd>
-				<dd>
-					<a
-						href="https://sketchfab.com/3d-models/forest-clearing-1-ground-skybox-a78ae6a11957401a83fd074004aafcc0"
-						target="_blank"
-						rel="noreferrer"
-					>
-						View source on Sketchfab
-					</a>
-				</dd>
-			</div>
-			<div>
-				<dt>35mm Film Roll</dt>
-				<dd class="attribution">Created by Alligator Alex · CC Attribution licence</dd>
-				<dd>
-					<a
-						href="https://sketchfab.com/3d-models/35mm-film-roll-6d8a6d290de043e898420a04072a3a1e"
-						target="_blank"
-						rel="noreferrer"
-					>
-						View source on Sketchfab
-					</a>
-				</dd>
-			</div>
 		</dl>
 	</article>
 </main>
