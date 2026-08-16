@@ -14,7 +14,7 @@
 	};
 </script>
 
-<main>
+<main class="contact-page">
 	<Canvas>
 		<Scene {onready} />
 	</Canvas>
@@ -26,14 +26,16 @@
 	:global(*) {
 		box-sizing: border-box;
 	}
-	:global(html),
-	:global(body) {
+	:global(html:has(.contact-page)),
+	:global(body:has(.contact-page)) {
 		margin: 0;
 		min-height: 100%;
+		background: #000;
 	}
 	main {
 		position: relative;
 		width: 100vw;
 		height: 100svh;
+		background: #000;
 	}
 </style>

@@ -72,7 +72,7 @@
 	<meta name="description" content={`${data.category.label} photography showcase.`} />
 </svelte:head>
 
-<main>
+<main class="showcase-page">
 	<Canvas>
 		<Scene category={data.category} {onready} />
 	</Canvas>
@@ -93,8 +93,8 @@
 	:global(*) {
 		box-sizing: border-box;
 	}
-	:global(html),
-	:global(body) {
+	:global(html:has(.showcase-page)),
+	:global(body:has(.showcase-page)) {
 		margin: 0;
 		min-height: 100%;
 		background: #080c15;
@@ -104,6 +104,7 @@
 		width: 100vw;
 		height: 100svh;
 		overflow: hidden;
+		background: #080c15;
 	}
 	main::after {
 		content: '';

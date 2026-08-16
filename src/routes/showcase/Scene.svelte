@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
 	import { ContactShadows } from '@threlte/extras';
+	import { Color } from 'three';
 	import type { ShowcaseCategory } from '$lib/showcase/types';
 
 	import SandFloor from './SandFloor.svelte';
@@ -21,6 +22,13 @@
 	let dustDrift = $state(0);
 	let postersReady = $state(false);
 	let hasReportedReady = false;
+	const { renderer, scene } = useThrelte();
+	const sceneBackground = new Color(backgroundColor);
+
+	$effect(() => {
+		scene.background = sceneBackground;
+		renderer.setClearColor(sceneBackground, 1);
+	});
 
 	$effect(() => {
 		if (hasReportedReady || !postersReady) return;

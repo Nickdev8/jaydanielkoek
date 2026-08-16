@@ -146,7 +146,7 @@
 	<meta name="description" content="Select a photography category through its camera lens." />
 </svelte:head>
 
-<main>
+<main class="lens-selector-page">
 	<Canvas>
 		{#key data.category.id}
 			<LensSelectorScene
@@ -177,8 +177,8 @@
 	:global(*) {
 		box-sizing: border-box;
 	}
-	:global(html),
-	:global(body) {
+	:global(html:has(.lens-selector-page)),
+	:global(body:has(.lens-selector-page)) {
 		margin: 0;
 		min-height: 100%;
 		background: #fff;

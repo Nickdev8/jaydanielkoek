@@ -2,7 +2,7 @@
 	<meta name="description" content="3D model credits for Jayden Daniel Koek's website." />
 </svelte:head>
 
-<main>
+<main class="model-credits-page">
 	<a class="back-link" href="/">Jayden Daniel Koek</a>
 
 	<article>
@@ -56,8 +56,8 @@
 	:global(*) {
 		box-sizing: border-box;
 	}
-	:global(html),
-	:global(body) {
+	:global(html:has(.model-credits-page)),
+	:global(body:has(.model-credits-page)) {
 		margin: 0;
 		min-height: 100%;
 		background: #0d1719;
