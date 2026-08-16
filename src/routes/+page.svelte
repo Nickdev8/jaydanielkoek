@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
+	import { useProgress } from '@threlte/extras';
+	import { onMount } from 'svelte';
 	import SceneLoadingVeil from '$lib/components/SceneLoadingVeil.svelte';
 	import Scene from './Scene.svelte';
 
@@ -8,6 +10,14 @@
 	let isLoading = $state(true);
 	let showTransitionName = $state(false);
 	let isLeaving = $state(false);
+	let loadProgress = $state(0);
+	const { progress } = useProgress();
+
+	onMount(() => {
+		return progress.subscribe((value) => {
+			loadProgress = value;
+		});
+	});
 
 	function start() {
 		started = true;
@@ -60,7 +70,8 @@
 	<SceneLoadingVeil
 		loaded={!isLoading}
 		leaving={isLeaving}
-		background="#033542"
+		spinner={false}
+		progress={isLoading ? Math.max(3, loadProgress * 100) : 100}
 		duration={700}
 	/>
 </main>
@@ -77,7 +88,7 @@
 	}
 	:global(html:has(.home-page)),
 	:global(body:has(.home-page)) {
-		background: #033542;
+		background: #000;
 	}
 	main {
 		position: relative;
@@ -85,7 +96,7 @@
 		height: 100svh;
 		overflow-x: hidden;
 		overflow-y: hidden;
-		background: #033542;
+		background: #000;
 	}
 	main::after {
 		content: '';

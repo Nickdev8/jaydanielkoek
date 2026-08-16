@@ -5,6 +5,7 @@
 		background = '#000',
 		foreground = '#fff',
 		spinner = true,
+		progress,
 		duration = 650
 	}: {
 		loaded?: boolean;
@@ -12,8 +13,11 @@
 		background?: string;
 		foreground?: string;
 		spinner?: boolean;
+		progress?: number;
 		duration?: number;
 	} = $props();
+
+	const progressValue = $derived(Math.min(100, Math.max(0, progress ?? 0)));
 </script>
 
 <div
@@ -27,6 +31,11 @@
 >
 	{#if spinner}
 		<span class="loading-wheel"></span>
+	{/if}
+	{#if progress !== undefined && !leaving}
+		<div class="loading-progress" aria-hidden="true">
+			<span style:width={`${progressValue}%`}></span>
+		</div>
 	{/if}
 </div>
 
@@ -59,6 +68,20 @@
 		border-radius: 50%;
 		animation: scene-loading-spin 800ms linear infinite;
 	}
+	.loading-progress {
+		position: absolute;
+		right: clamp(1.5rem, 3vw, 3rem);
+		bottom: clamp(1.75rem, 3vw, 2.75rem);
+		left: clamp(1.5rem, 3vw, 3rem);
+		height: 1px;
+		background: color-mix(in srgb, var(--veil-foreground) 24%, transparent);
+	}
+	.loading-progress span {
+		display: block;
+		height: 100%;
+		background: var(--veil-foreground);
+		transition: width 180ms ease;
+	}
 	@keyframes scene-loading-spin {
 		to {
 			transform: rotate(360deg);
@@ -70,6 +93,9 @@
 		}
 		.loading-wheel {
 			animation: none;
+		}
+		.loading-progress span {
+			transition-duration: 0ms;
 		}
 	}
 </style>

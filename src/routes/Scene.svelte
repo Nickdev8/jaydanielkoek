@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
 	import { OrbitControls } from '@threlte/extras';
 	import { damp } from 'three/src/math/MathUtils.js';
-	import { Euler, Quaternion, Vector3, type Group, type Mesh, type PerspectiveCamera } from 'three';
+	import { Color, Euler, Quaternion, Vector3, type Group, type Mesh, type PerspectiveCamera } from 'three';
 	import Cmodel from '$lib/components/Cmodel.svelte';
 	import ReflectiveSurface from '$lib/components/ReflectiveSurface.svelte';
 	import { orbitDebug } from '$lib/debug/orbit.svelte';
@@ -41,6 +41,13 @@
 	let cmodelRotation = $state(cmodelStartRotation);
 	const targetVector = new Vector3();
 	const targetQuaternion = new Quaternion();
+	const { renderer, scene } = useThrelte();
+	const sceneBackground = new Color(backgroundColor);
+
+	$effect(() => {
+		scene.background = sceneBackground;
+		renderer.setClearColor(sceneBackground, 1);
+	});
 
 	$effect(() => {
 		if (!viewerCamera) return;
