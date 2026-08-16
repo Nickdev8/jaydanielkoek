@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GLTF, type ThrelteGltf } from '@threlte/extras';
+	import { GLTF, type ThrelteGltf, useDraco } from '@threlte/extras';
 	import type { Material, Mesh } from 'three';
 
 
@@ -30,7 +30,8 @@
 	const showBody = $derived(lens >= 0);
 	const lensNumber = $derived(Math.abs(lens));
 	const showLens = $derived(lensNumber > 0);
-	const lensModel = $derived(`/models/cmodel-lens${lensNumber}.glb`);
+	const lensModel = $derived(`/models/cmodel-lens${lensNumber}-optimized.glb`);
+	const dracoLoader = useDraco('/draco/');
 
 	const configureMaterials = (gltf: ThrelteGltf) => {
 		gltf.scene.traverse((object) => {
@@ -85,8 +86,9 @@
 
 {#if showBody}
 	<GLTF
-		url="/models/cmodel.glb"
+		url="/models/cmodel-optimized.glb"
 		bind:gltf={cmodelGltf}
+		{dracoLoader}
 		{position}
 		{rotation}
 		{scale}
@@ -99,6 +101,7 @@
 	<GLTF
 		url={lensModel}
 		bind:gltf={lensGltf}
+		{dracoLoader}
 		{position}
 		{rotation}
 		{scale}

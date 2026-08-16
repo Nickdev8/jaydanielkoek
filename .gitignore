@@ -31,3 +31,4 @@ static/posters/*
 static/models/**/*.blend
 static/models/**/*.blend[0-9]*
 static/models/**/*.psd
+static/models/backups/
