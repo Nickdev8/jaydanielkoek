@@ -1,6 +1,8 @@
 # Jayden Daniel Koek Photogrophy
 ![Homepage preview](static/readme-homepage.png)
 
+![Showcase preview](static/readme-showcase-mobile.png)
+
 This is a portfolio site for my good friend Jayden, a photographer. I made it to learn 3D web design with Threlte and to give visitors a way to walk through Jayden's images instead of only scrolling past them. It is a project for [#beest](https://hackclub.com/).
 
 ## Tech stack
