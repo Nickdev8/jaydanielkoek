@@ -13,10 +13,6 @@
 	};
 </script>
 
-<svelte:head>
-	<title>Contact — Jayden Daniel Koek</title>
-</svelte:head>
-
 <main>
 	<Canvas>
 		<Scene {onready} />

@@ -5,14 +5,11 @@
 	import { PerspectiveCamera, Vector3, type Group, type Mesh } from 'three';
 	import Cmodel from '$lib/components/Cmodel.svelte';
 	import { orbitDebug } from '$lib/debug/orbit.svelte';
-	import {
-		getCategoryForLens,
-		showcaseCategories,
-		type ShowcaseCategory
-	} from '$lib/showcase/categories';
+	import type { ShowcaseCategory } from '$lib/showcase/types';
 
 	let {
 		currentCategory,
+		categories,
 		selectedLens = $bindable(),
 		attachRequested = false,
 		attachAfterSelection = false,
@@ -22,6 +19,7 @@
 		onattached
 	}: {
 		currentCategory: ShowcaseCategory;
+		categories: ShowcaseCategory[];
 		selectedLens?: number;
 		attachRequested?: boolean;
 		attachAfterSelection?: boolean;
@@ -69,12 +67,14 @@
 	const attachingLensVector = new Vector3();
 
 	const selectedIndex = $derived(
-		Math.max(0, showcaseCategories.findIndex((category) => category.lens === selectedLens))
+		Math.max(0, categories.findIndex((category) => category.lens === selectedLens))
 	);
-	const currentCategoryIndex = showcaseCategories.findIndex(
-		(category) => category.lens === currentCategory.lens
+	const currentCategoryIndex = $derived(
+		categories.findIndex((category) => category.lens === currentCategory.lens)
 	);
-	const selectedCategory = $derived(getCategoryForLens(selectedLens ?? currentCategory.lens));
+	const selectedCategory = $derived(
+		categories.find((category) => category.lens === (selectedLens ?? currentCategory.lens))
+	);
 	const advanceCarousel = (delta: number) => {
 		carouselSpread = damp(carouselSpread, 1, motionSpeed, delta);
 		carouselOffset = damp(
@@ -249,7 +249,7 @@
 			scale={modelScale}
 		/>
 	</T.Group>
-	{#each showcaseCategories as category, index (category.id)}
+	{#each categories as category, index (category.id)}
 		{#if category.lens !== currentCategory.lens}
 			{@const lensPosition: [number, number, number] = [
 				selectorModelPosition[0] + (index - currentCategoryIndex) * carouselSpacing,
@@ -274,7 +274,7 @@
 		selectorModelPosition[2]
 	]}
 >
-		{#each showcaseCategories as category, index (category.id)}
+		{#each categories as category, index (category.id)}
 			{@const lensPosition: [number, number, number] = [
 				selectorModelPosition[0] + carouselOffset + index * carouselSpacing,
 				selectorModelPosition[1] +
@@ -299,7 +299,7 @@
 		{/each}
 	</T.Group>
 {:else}
-	{#each showcaseCategories as category, index (category.id)}
+	{#each categories as category, index (category.id)}
 		{#if category.lens !== selectedLens}
 			<Cmodel
 				lens={-category.lens}

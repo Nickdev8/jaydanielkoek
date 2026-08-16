@@ -30,3 +30,4 @@ static/posters/*
 # Blender working files are source material, not public site assets.
 static/models/**/*.blend
 static/models/**/*.blend[0-9]*
+static/models/**/*.psd

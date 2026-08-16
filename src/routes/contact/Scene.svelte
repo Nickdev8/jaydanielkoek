@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { env } from '$env/dynamic/public';
 	import { T, useTask } from '@threlte/core';
 	import { GLTF, HTML, OrbitControls, type ThrelteGltf } from '@threlte/extras';
 	import type { Material, Mesh, PerspectiveCamera } from 'three';
@@ -17,6 +18,8 @@
 	const filmEntryTargetPosition: [number, number, number] = [0, 0, 0];
 	const filmMoveStartDistance = 0.098;
 	const filmEntranceSpeed = 2;
+	const contactEmail = env.PUBLIC_CONTACT_EMAIL;
+	const contactPhone = env.PUBLIC_CONTACT_PHONE;
 	let viewerCamera = $state.raw<PerspectiveCamera>();
 	let orbitStartPosition = $state<[number, number, number]>(frontCameraPosition);
 	let orbitStartRotation = $state<[number, number, number]>([0, 0, 0]);
@@ -157,10 +160,10 @@
 		<div class="film-ui">
 			<div class="film-details">
 				<p class="film-name">Jayden Daniel Koek</p>
-				<p class="film-detail">jay@gmail.com</p>
-				<p class="film-detail">+31 123456678</p>
+				<p class="film-detail">{contactEmail}</p>
+				<p class="film-detail">{contactPhone}</p>
 			</div>
-			<a class="email-button" href="mailto:jay@gmail.com">Send email</a>
+			<a class="email-button" href={`mailto:${contactEmail}`}>Send email</a>
 		</div>
 	</HTML>
 </T.Group>

@@ -2,17 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
 	import { onMount } from 'svelte';
-	import type { ShowcaseCategory } from '$lib/showcase/categories';
-	import { showcaseCategories } from '$lib/showcase/categories';
+	import type { ShowcaseCategory } from '$lib/showcase/types';
 	import LensSelectorScene from './LensSelectorScene.svelte';
 
-	let { data }: { data: { category: ShowcaseCategory } } = $props();
+	let { data }: { data: { category: ShowcaseCategory; categories: ShowcaseCategory[] } } = $props();
 	let selectedLens = $state(0);
 	let attachRequested = $state(false);
 	let attachAfterSelection = $state(false);
 	let carouselRequested = $state(false);
 	const lensKeyHint = $derived(
-		showcaseCategories.length === 1 ? '1' : `1–${showcaseCategories.length}`
+		data.categories.length === 1 ? '1' : `1–${data.categories.length}`
 	);
 
 	$effect(() => {
@@ -40,12 +39,12 @@
 	};
 
 	const selectByOffset = (offset: number) => {
-		const currentIndex = showcaseCategories.findIndex((category) => category.lens === selectedLens);
+		const currentIndex = data.categories.findIndex((category) => category.lens === selectedLens);
 		const nextIndex = Math.max(
 			0,
-			Math.min(showcaseCategories.length - 1, currentIndex + offset)
+			Math.min(data.categories.length - 1, currentIndex + offset)
 		);
-		selectLens(showcaseCategories[nextIndex].lens);
+		selectLens(data.categories[nextIndex].lens);
 	};
 
 	const attachWhenCarouselSettles = () => {
@@ -78,7 +77,7 @@
 
 			const lensNumber = Number(event.key);
 			if (lensNumber >= 1 && lensNumber <= 5) {
-				const category = showcaseCategories.find((category) => category.lens === lensNumber);
+				const category = data.categories.find((category) => category.lens === lensNumber);
 				if (!category) return;
 
 				event.preventDefault();
@@ -129,7 +128,6 @@
 </script>
 
 <svelte:head>
-	<title>Select a lens — Jayden Daniel Koek</title>
 	<meta name="description" content="Select a photography category through its camera lens." />
 </svelte:head>
 
@@ -138,6 +136,7 @@
 		{#key data.category.id}
 			<LensSelectorScene
 				currentCategory={data.category}
+				categories={data.categories}
 				bind:selectedLens
 				{attachRequested}
 				{attachAfterSelection}

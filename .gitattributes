@@ -1,2 +1,0 @@
-static/models/*.glb filter=lfs diff=lfs merge=lfs -text
-static/models/jaydanielkoek.blend filter=lfs diff=lfs merge=lfs -text

@@ -1,5 +1,4 @@
 <svelte:head>
-	<title>Model credits — Jayden Daniel Koek</title>
 	<meta name="description" content="3D model credits for Jayden Daniel Koek's website." />
 </svelte:head>
 

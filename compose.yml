@@ -3,7 +3,10 @@ services:
     build: .
     container_name: jayden-daniel-koek
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - '127.0.0.1:3405:3000'
     volumes:
       - ./static/posters:/app/build/client/posters:ro
+      - ./showcase.categories.json:/app/showcase.categories.json:ro

@@ -29,6 +29,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Jayden Daniel Koek</title>
+</svelte:head>
+
 {@render children()}
 
 <nav class="utility-nav" aria-label="Utility navigation">

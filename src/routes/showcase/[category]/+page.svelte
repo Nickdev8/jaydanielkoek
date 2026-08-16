@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
 	import { onMount } from 'svelte';
-	import type { ShowcaseCategory } from '$lib/showcase/categories';
+	import type { ShowcaseCategory } from '$lib/showcase/types';
 	import Scene from '../Scene.svelte';
 
 	let { data }: { data: { category: ShowcaseCategory } } = $props();
@@ -60,7 +60,6 @@
 </script>
 
 <svelte:head>
-	<title>{data.category.label} — Jayden Daniel Koek</title>
 	<meta name="description" content={`${data.category.label} photography showcase.`} />
 </svelte:head>
 

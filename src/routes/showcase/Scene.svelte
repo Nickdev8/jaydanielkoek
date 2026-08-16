@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
 	import { ContactShadows } from '@threlte/extras';
-	import type { ShowcaseCategory } from '$lib/showcase/categories';
+	import type { ShowcaseCategory } from '$lib/showcase/types';
 
 	import SandFloor from './SandFloor.svelte';
 	import CameraController from './CameraController.svelte';
