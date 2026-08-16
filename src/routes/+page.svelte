@@ -57,7 +57,12 @@
 		<p class="transition-name">Jayden Daniel Koek</p>
 	{/if}
 
-	<SceneLoadingVeil loaded={!isLoading} leaving={isLeaving} duration={700} />
+	<SceneLoadingVeil
+		loaded={!isLoading}
+		leaving={isLeaving}
+		background="#033542"
+		duration={700}
+	/>
 </main>
 
 <style>
