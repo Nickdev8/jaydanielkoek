@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
 	import { T, useTask } from '@threlte/core';
-	import { GLTF, HTML, OrbitControls, type ThrelteGltf } from '@threlte/extras';
+	import { GLTF, HTML, OrbitControls, type ThrelteGltf, useDraco } from '@threlte/extras';
 	import type { Material, Mesh, PerspectiveCamera } from 'three';
 	import { damp } from 'three/src/math/MathUtils.js';
 	import { orbitDebug } from '$lib/debug/orbit.svelte';
@@ -20,6 +20,7 @@
 	const filmEntranceSpeed = 2;
 	const contactEmail = env.PUBLIC_CONTACT_EMAIL;
 	const contactPhone = env.PUBLIC_CONTACT_PHONE;
+	const dracoLoader = useDraco('/draco/');
 	let viewerCamera = $state.raw<PerspectiveCamera>();
 	let orbitStartPosition = $state<[number, number, number]>(frontCameraPosition);
 	let orbitStartRotation = $state<[number, number, number]>([0, 0, 0]);
@@ -140,8 +141,9 @@
 <T.DirectionalLight color="#77979a" position={[4, 1.5, -3]} intensity={1.2} />
 
 <GLTF
-	url="/models/FilmCamera.glb"
+	url="/models/FilmCamera-optimized.glb"
 	bind:gltf={openFilmCameraGltf}
+	{dracoLoader}
 	position={[0, 0, 0]}
 	scale={1.5}
 />
