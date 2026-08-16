@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
 	import { ContactShadows, OrbitControls } from '@threlte/extras';
+	import { untrack } from 'svelte';
 	import { damp } from 'three/src/math/MathUtils.js';
 	import { PerspectiveCamera, Vector3, type Group, type Mesh } from 'three';
 	import Cmodel from '$lib/components/Cmodel.svelte';
@@ -12,20 +13,18 @@
 		categories,
 		selectedLens = $bindable(),
 		attachRequested = false,
-		attachAfterSelection = false,
-		carouselRequested = false,
+		ready = false,
+		onmodelready,
 		onlensselected,
-		onselectionsettled,
 		onattached
 	}: {
 		currentCategory: ShowcaseCategory;
 		categories: ShowcaseCategory[];
 		selectedLens?: number;
 		attachRequested?: boolean;
-		attachAfterSelection?: boolean;
-		carouselRequested?: boolean;
+		ready?: boolean;
+		onmodelready?: (modelKey: string) => void;
 		onlensselected?: (lens: number) => void;
-		onselectionsettled?: () => void;
 		onattached?: (categoryId: string) => void;
 	} = $props();
 
@@ -33,91 +32,113 @@
 	const selectorModelRotation: [number, number, number] = [0, 180, 0];
 	const selectorModelPosition: [number, number, number] = [0, 0, 0.3];
 	const carouselSpacing = 0.5;
+	const carouselLift = 0.12;
 	const carouselDepth = -0.2;
-	const carouselLift = 0;
-	const motionSpeed = 3.5;
-	const attachOverlapDistance = carouselSpacing * 0.2;
+	const carouselSpeed = 7;
+	const attachSpeed = 5;
+	const cameraSpeed = 3.5;
 	const entryCameraPosition: [number, number, number] = [0, 0.5, 4.5];
 	const topDownCameraPosition: [number, number, number] = [0, 3, 0];
 	const cameraLookAt: [number, number, number] = [0, 0.18, 0];
+	const entryCameraFov = 36;
 	const topDownCameraFov = 30;
+	const maximumDelta = 1 / 30;
+	const atmosphereDust = Array.from({ length: 34 }, (_, index) => {
+		const random = (seed: number) => {
+			const value = Math.sin(seed * 913.71) * 5172.19;
+			return value - Math.floor(value);
+		};
 
-	let phase = $state<'entering' | 'framing' | 'selecting' | 'attaching'>('entering');
+		return {
+			id: index,
+		x: -1.5 + random(index + 1) * 3,
+		y: 0.018 + random(index + 31) * 0.065,
+		z: -1.1 + random(index + 61) * 2.2,
+		size: 0.002 + random(index + 91) * 0.005,
+			opacity: 0.035 + random(index + 121) * 0.06
+		};
+	});
+
+	type SelectorPhase = 'entering' | 'selecting' | 'attaching';
+
+	let phase = $state<SelectorPhase>('entering');
 	let viewerCamera = $state.raw<PerspectiveCamera>();
 	let orbitStartPosition = $state<[number, number, number]>([0, 0, 0]);
 	let orbitStartRotation = $state<[number, number, number]>([0, 0, 0]);
-	let orbitStartFov = $state(36);
+	let orbitStartFov = $state(entryCameraFov);
 	let orbitMarker = $state.raw<Mesh>();
 	let orbitDirection = $state.raw<Group>();
-	let carouselOffset = $state(0);
-	let carouselSpread = $state(0);
+
+	const initialCategoryIndex = untrack(() =>
+		Math.max(0, categories.findIndex((category) => category.lens === currentCategory.lens))
+	);
+	let carouselOffset = $state(-initialCategoryIndex * carouselSpacing);
 	let attachingLensPosition = $state<[number, number, number]>([
 		selectorModelPosition[0],
 		selectorModelPosition[1] + carouselLift,
 		selectorModelPosition[2] + carouselDepth
 	]);
 	let hasReportedAttach = false;
-	let hasReportedSelectionSettled = false;
+	let atmosphereTime = $state(0);
 
-	const targetPosition = new Vector3();
-	const targetLookAt = new Vector3(...cameraLookAt);
 	const targetCamera = new PerspectiveCamera();
-	const targetQuaternion = targetCamera.quaternion;
-	const attachTarget = new Vector3(...selectorModelPosition);
-	const attachingLensVector = new Vector3();
+	const targetLookAt = new Vector3(...cameraLookAt);
+	const targetPosition = new Vector3(...topDownCameraPosition);
+	const attachmentTarget = new Vector3(...selectorModelPosition);
+	const attachmentVector = new Vector3();
 
+	const activeLens = $derived(selectedLens ?? currentCategory.lens);
 	const selectedIndex = $derived(
-		Math.max(0, categories.findIndex((category) => category.lens === selectedLens))
+		Math.max(0, categories.findIndex((category) => category.lens === activeLens))
 	);
-	const currentCategoryIndex = $derived(
-		categories.findIndex((category) => category.lens === currentCategory.lens)
-	);
-	const selectedCategory = $derived(
-		categories.find((category) => category.lens === (selectedLens ?? currentCategory.lens))
-	);
-	const advanceCarousel = (delta: number) => {
-		carouselSpread = damp(carouselSpread, 1, motionSpeed, delta);
-		carouselOffset = damp(
-			carouselOffset,
-			-selectedIndex * carouselSpacing,
-			motionSpeed,
-			delta
-		);
-	};
+	const selectedCategory = $derived(categories.find((category) => category.lens === activeLens));
+	const targetCarouselOffset = $derived(-selectedIndex * carouselSpacing);
 
-	const moveCamera = (position: [number, number, number], delta: number) => {
+	const moveViewerCamera = (delta: number) => {
 		if (!viewerCamera) return;
 
-		viewerCamera.position.x = damp(viewerCamera.position.x, position[0], motionSpeed, delta);
-		viewerCamera.position.y = damp(viewerCamera.position.y, position[1], motionSpeed, delta);
-		viewerCamera.position.z = damp(viewerCamera.position.z, position[2], motionSpeed, delta);
-		targetCamera.position.set(...position);
+		viewerCamera.position.x = damp(
+			viewerCamera.position.x,
+			topDownCameraPosition[0],
+			cameraSpeed,
+			delta
+		);
+		viewerCamera.position.y = damp(
+			viewerCamera.position.y,
+			topDownCameraPosition[1],
+			cameraSpeed,
+			delta
+		);
+		viewerCamera.position.z = damp(
+			viewerCamera.position.z,
+			topDownCameraPosition[2],
+			cameraSpeed,
+			delta
+		);
+		viewerCamera.fov = damp(viewerCamera.fov, topDownCameraFov, cameraSpeed, delta);
+		targetCamera.position.copy(targetPosition);
 		targetCamera.lookAt(targetLookAt);
-		viewerCamera.quaternion.slerp(targetQuaternion, 1 - Math.exp(-motionSpeed * delta));
+		viewerCamera.quaternion.slerp(targetCamera.quaternion, 1 - Math.exp(-cameraSpeed * delta));
+		viewerCamera.updateProjectionMatrix();
 	};
 
-	$effect(() => {
-		if (phase !== 'selecting' || !attachRequested) return;
+	const isCameraSettled = () =>
+		Boolean(
+			viewerCamera &&
+			viewerCamera.position.distanceTo(targetPosition) < 0.015 &&
+			Math.abs(viewerCamera.fov - topDownCameraFov) < 0.05
+		);
 
+	const isCarouselSettled = () => Math.abs(carouselOffset - targetCarouselOffset) < 0.003;
+
+	const startAttachment = () => {
 		attachingLensPosition = [
 			selectorModelPosition[0] + carouselOffset + selectedIndex * carouselSpacing,
-			selectorModelPosition[1] +
-				carouselLift * (selectedLens === currentCategory.lens ? carouselSpread : 1),
-			selectorModelPosition[2] +
-				carouselDepth * (selectedLens === currentCategory.lens ? carouselSpread : 1)
+			selectorModelPosition[1] + carouselLift,
+			selectorModelPosition[2] + carouselDepth
 		];
 		phase = 'attaching';
-	});
-
-	$effect(() => {
-		if (!attachAfterSelection) hasReportedSelectionSettled = false;
-	});
-
-	$effect(() => {
-		if (!carouselRequested || phase === 'selecting' || carouselSpread !== 0) return;
-
-		carouselOffset = -currentCategoryIndex * carouselSpacing;
-	});
+	};
 
 	$effect(() => {
 		if (!orbitDebug.enabled || !viewerCamera) return;
@@ -129,60 +150,45 @@
 
 	useTask((delta) => {
 		if (!viewerCamera) return;
+		atmosphereTime += delta;
+		if (!ready) return;
+		const animationDelta = Math.min(delta, maximumDelta);
+
+		moveViewerCamera(animationDelta);
+		if (phase !== 'attaching') {
+			carouselOffset = damp(
+				carouselOffset,
+				targetCarouselOffset,
+				carouselSpeed,
+				animationDelta
+			);
+		}
+
 		if (orbitDebug.enabled) {
 			orbitMarker?.position.copy(viewerCamera.position);
 			orbitDirection?.position.copy(viewerCamera.position);
 			orbitDirection?.quaternion.copy(viewerCamera.quaternion);
 		}
 
-		if (phase === 'entering') {
-			moveCamera(topDownCameraPosition, delta);
-			if (carouselRequested) advanceCarousel(delta);
-			targetPosition.set(...topDownCameraPosition);
-
-			if (viewerCamera.position.distanceTo(targetPosition) < 0.02) {
-				phase = 'framing';
-			}
-			return;
+		if (phase === 'entering' && isCameraSettled()) {
+			phase = 'selecting';
 		}
 
-		if (phase === 'framing') {
-			viewerCamera.fov = damp(viewerCamera.fov, topDownCameraFov, motionSpeed, delta);
-			viewerCamera.updateProjectionMatrix();
-			if (carouselRequested) advanceCarousel(delta);
-
-			if (Math.abs(viewerCamera.fov - topDownCameraFov) < 0.01) {
-				viewerCamera.fov = topDownCameraFov;
-				viewerCamera.updateProjectionMatrix();
-				if (!attachAfterSelection) carouselOffset = -currentCategoryIndex * carouselSpacing;
-				phase = 'selecting';
-			}
-			return;
+		if (phase === 'selecting' && attachRequested && isCarouselSettled()) {
+			startAttachment();
 		}
 
-		if (phase === 'selecting') {
-			advanceCarousel(delta);
-
-			if (
-				attachAfterSelection &&
-				!hasReportedSelectionSettled &&
-				Math.abs(carouselSpread - 1) < attachOverlapDistance &&
-				Math.abs(carouselOffset + selectedIndex * carouselSpacing) < attachOverlapDistance
-			) {
-				hasReportedSelectionSettled = true;
-				onselectionsettled?.();
-			}
-			return;
-		}
+		if (phase !== 'attaching') return;
 
 		attachingLensPosition = [
-			damp(attachingLensPosition[0], attachTarget.x, motionSpeed, delta),
-			damp(attachingLensPosition[1], attachTarget.y, motionSpeed, delta),
-			damp(attachingLensPosition[2], attachTarget.z, motionSpeed, delta)
+			damp(attachingLensPosition[0], attachmentTarget.x, attachSpeed, animationDelta),
+			damp(attachingLensPosition[1], attachmentTarget.y, attachSpeed, animationDelta),
+			damp(attachingLensPosition[2], attachmentTarget.z, attachSpeed, animationDelta)
 		];
+
 		if (
 			!hasReportedAttach &&
-			attachingLensVector.set(...attachingLensPosition).distanceTo(attachTarget) < 0.03 &&
+			attachmentVector.set(...attachingLensPosition).distanceTo(attachmentTarget) < 0.008 &&
 			selectedCategory
 		) {
 			hasReportedAttach = true;
@@ -195,14 +201,22 @@
 <T.HemisphereLight args={['#ffffff', '#d9e5e6', 1.7]} />
 <T.DirectionalLight color="#ffffff" position={[3, 3, 4]} intensity={4.2} />
 <T.DirectionalLight color="#b6e1e8" position={[-4, 2.5, -2]} intensity={1.8} />
-<T.PointLight color="#ffd6b5" position={[2.2, 1, -3]} intensity={5} distance={7} decay={2} />
-<T.PointLight color="#9edce7" position={[-2.5, 0.8, 2]} intensity={3.2} distance={6} decay={2} />
+<T.PointLight color="#ffd6b5" position={[1, 0.2, -0.5]} intensity={40} distance={1} decay={1} />
+<T.PointLight color="#9edce7" position={[-1, 0.2, 0.5]} intensity={40} distance={1} decay={1} />
+<!-- A broad studio reflection that slowly crosses the lenses from the top-down view. -->
+<T.PointLight
+	color="#ffffff"
+	position={[Math.sin(atmosphereTime * 0.22) * 1.35, 2.7, Math.cos(atmosphereTime * 0.22) * 1.05]}
+	intensity={1.7}
+	distance={3.8}
+	decay={2}
+/>
 
-	<T.PerspectiveCamera
+<T.PerspectiveCamera
 	bind:ref={viewerCamera}
-		makeDefault
-		position={entryCameraPosition}
-		fov={36}
+	makeDefault
+	position={entryCameraPosition}
+	fov={entryCameraFov}
 />
 
 {#if orbitDebug.enabled}
@@ -230,94 +244,77 @@
 
 <T.Mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
 	<T.PlaneGeometry args={[60, 60]} />
-	<T.MeshStandardMaterial color="#f7f7f4" roughness={0.9} />
+	<T.MeshStandardMaterial color="#f5f5f1" roughness={0.82} metalness={0.02} />
 </T.Mesh>
+
+<!-- Near-invisible airborne dust gives the empty studio surface a little depth. -->
+<T.Group position={[Math.sin(atmosphereTime * 0.08) * 0.035, 0, 0]}>
+	{#each atmosphereDust as dust (dust.id)}
+		<T.Mesh position={[dust.x, dust.y, dust.z]}>
+			<T.SphereGeometry args={[dust.size, 6, 4]} />
+			<T.MeshBasicMaterial color="#95a3a2" transparent opacity={dust.opacity} depthWrite={false} />
+		</T.Mesh>
+	{/each}
+</T.Group>
 
 <Cmodel
 	position={selectorModelPosition}
 	rotationDegrees={selectorModelRotation}
 	lens={0}
 	scale={modelScale}
+	onready={() => onmodelready?.('body')}
 />
 
-{#if (phase === 'entering' || phase === 'framing') && !carouselRequested}
-	<T.Group onclick={() => onlensselected?.(currentCategory.lens)}>
-		<Cmodel
-			lens={-currentCategory.lens}
-			position={selectorModelPosition}
-			rotationDegrees={selectorModelRotation}
-			scale={modelScale}
-		/>
-	</T.Group>
-	{#each categories as category, index (category.id)}
-		{#if category.lens !== currentCategory.lens}
-			{@const lensPosition: [number, number, number] = [
-				selectorModelPosition[0] + (index - currentCategoryIndex) * carouselSpacing,
-				selectorModelPosition[1] + carouselLift,
-				selectorModelPosition[2] + carouselDepth
-			]}
-			<T.Group onclick={() => onlensselected?.(category.lens)}>
-				<Cmodel
-					lens={-category.lens}
-					position={lensPosition}
-					rotationDegrees={selectorModelRotation}
-					scale={modelScale}
-				/>
-			</T.Group>
-		{/if}
-	{/each}
-{:else if phase !== 'attaching'}
-<T.Group
-	position={[
-		selectorModelPosition[0] + carouselOffset,
-		selectorModelPosition[1],
-		selectorModelPosition[2]
-	]}
->
+{#if phase !== 'attaching'}
+	<T.Group
+		position={[
+			selectorModelPosition[0] + carouselOffset,
+			selectorModelPosition[1],
+			selectorModelPosition[2]
+		]}
+	>
 		{#each categories as category, index (category.id)}
-			{@const lensPosition: [number, number, number] = [
-				selectorModelPosition[0] + carouselOffset + index * carouselSpacing,
-				selectorModelPosition[1] +
-					carouselLift * (category.lens === currentCategory.lens ? carouselSpread : 1),
-				selectorModelPosition[2] +
-					carouselDepth * (category.lens === currentCategory.lens ? carouselSpread : 1)
-			]}
 			<T.Group
-				position={[
-					index * carouselSpacing,
-					carouselLift * (category.lens === currentCategory.lens ? carouselSpread : 1),
-					carouselDepth * (category.lens === currentCategory.lens ? carouselSpread : 1)
-				]}
+				position={[index * carouselSpacing, carouselLift, carouselDepth]}
 				onclick={() => onlensselected?.(category.lens)}
 			>
 				<Cmodel
 					lens={-category.lens}
 					rotationDegrees={selectorModelRotation}
 					scale={modelScale}
+					onready={() => onmodelready?.(`lens-${category.lens}`)}
 				/>
 			</T.Group>
 		{/each}
 	</T.Group>
 {:else}
-	{#each categories as category, index (category.id)}
-		{#if category.lens !== selectedLens}
-			<Cmodel
-				lens={-category.lens}
-				position={[
-					selectorModelPosition[0] + carouselOffset + index * carouselSpacing,
-					selectorModelPosition[1] + carouselLift,
-					selectorModelPosition[2] + carouselDepth
-				]}
-				rotationDegrees={selectorModelRotation}
-				scale={modelScale}
-			/>
-		{/if}
-	{/each}
+	<T.Group
+		position={[
+			selectorModelPosition[0] + carouselOffset,
+			selectorModelPosition[1],
+			selectorModelPosition[2]
+		]}
+	>
+		{#each categories as category, index (category.id)}
+			{#if category.lens !== activeLens}
+				<T.Group position={[index * carouselSpacing, carouselLift, carouselDepth]}>
+					<Cmodel
+						lens={-category.lens}
+						rotationDegrees={selectorModelRotation}
+						scale={modelScale}
+						onready={() => onmodelready?.(`lens-${category.lens}`)}
+					/>
+				</T.Group>
+			{/if}
+		{/each}
+	</T.Group>
+
 	<Cmodel
-		lens={-(selectedLens ?? currentCategory.lens)}
+		lens={-activeLens}
 		position={attachingLensPosition}
 		rotationDegrees={selectorModelRotation}
 		scale={modelScale}
+		onready={() => onmodelready?.(`lens-${activeLens}`)}
 	/>
 {/if}
 

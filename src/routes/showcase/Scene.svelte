@@ -6,7 +6,8 @@
 	import SandFloor from './SandFloor.svelte';
 	import CameraController from './CameraController.svelte';
 	import PosterController from './PosterController.svelte';
-	let { category }: { category: ShowcaseCategory } = $props();
+	import ReflectiveSurface from './ReflectiveSurface.svelte';
+	let { category, onready }: { category: ShowcaseCategory; onready?: () => void } = $props();
 	const distanceByStep = [0, 5.63, 13, 20, 27];
 	const backgroundColor = '#080c15';
 	const fogDensity = 0.075;
@@ -15,8 +16,18 @@
 	const maximumCameraDistance = Math.max(...distanceByStep.slice(1)) + 2;
 
 	let cameraPosition = $state<[number, number, number]>([0, 0, 0]);
+	let normalCameraPosition = $state<[number, number, number]>([0, 0, 0]);
 	let cameraRotation = $state(0);
 	let dustDrift = $state(0);
+	let postersReady = $state(false);
+	let hasReportedReady = false;
+
+	$effect(() => {
+		if (hasReportedReady || !postersReady) return;
+
+		hasReportedReady = true;
+		onready?.();
+	});
 
 	const dust = Array.from({ length: 54 }, (_, index) => {
 		const random = (seed: number) => {
@@ -46,6 +57,7 @@
 	{maximumCameraDistance}
 	{cameraStartRotation}
 	bind:cameraPosition
+	bind:normalCameraPosition
 	bind:cameraRotation
 />
 
@@ -77,6 +89,11 @@
 /> -->
 
 <SandFloor {floorHeight} radius={100} {backgroundColor} {fogDensity} />
+<ReflectiveSurface
+	position={[0, floorHeight + 0.015, 0]}
+	brightness={0.45}
+	{backgroundColor}
+/>
 
 <T.Mesh position={[0, floorHeight + 0.01, 0]} rotation.x={-Math.PI / 2}>
 	<T.CircleGeometry args={[3, 64]} />
@@ -89,7 +106,8 @@
 	{floorHeight}
 	posters={category.posters}
 	{distanceByStep}
-	{cameraPosition}
+	cameraPosition={normalCameraPosition}
 	{backgroundColor}
 	{fogDensity}
+	onready={() => (postersReady = true)}
 />

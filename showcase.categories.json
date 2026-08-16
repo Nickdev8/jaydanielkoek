@@ -11,8 +11,9 @@
 			{ "image": "/posters/urban/peaceprotestes.jpg", "angle": 87, "step": 1.3 },
 			{ "image": "/posters/urban/sadwomanprotests.jpg", "angle": 40, "step": 2 },
 			{ "image": "/posters/urban/womanprotests.jpg", "angle": 55, "step": 2.2 },
-			{ "image": "/posters/urban/VISSER.jpg", "angle": 230, "step": 1 },
-			{ "image": "/posters/urban/DARBRIDGE.jpg", "angle": 260, "step": 1.3 }
+			{ "image": "/posters/urban/VISSER.jpg", "angle": 210, "step": 1 },
+			{ "image": "/posters/urban/DARBRIDGE.jpg", "angle": 240, "step": 1.3 },
+			{ "image": "/posters/urban/anotherbridge.jpg", "angle": 180, "step": 1.3 }
 		]
 	},
 	{
@@ -20,31 +21,37 @@
 		"label": "Nature",
 		"lens": 2,
 		"posters": [
-			{ "image": "/posters/nature/GIRAFE.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/papagaar.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/ShadowBird.jpg", "angle": 0, "step": 1 },
 			{ "image": "/posters/nature/colorfullbird.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/BRUHBURB.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/IJSVOGEL.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/VERYGHIGHFUCKINGBIRDLOOKOUTOHNOOO.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/KUTMEERKOET.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/smallbirdinwater.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/DUCK.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/burdonhooglander.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/Hooglandjezijprofiel.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/hooglandinbushed.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/phasant.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/pharanttinbushes.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/aapwannabyfrondagnle.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/wannebeaapotheragne.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/HORSEy.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/REDPANDA.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/upsidedownslith.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/antsss.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/VERYCLOSEBEE.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/koolmeestje.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/rarw.jpg", "angle": 0, "step": 1 },
-			{ "image": "/posters/nature/MEEUW.jpg", "angle": 0, "step": 1 }
+			{ "image": "/posters/nature/IJSVOGEL.jpg", "angle": 72, "step": 1 },
+			{ "image": "/posters/nature/smallbirdinwater.jpg", "angle": 144, "step": 1 },
+			{ "image": "/posters/nature/phasant.jpg", "angle": 216, "step": 1 },
+			{ "image": "/posters/nature/REDPANDA.jpg", "angle": 288, "step": 1 },
+
+			{ "image": "/posters/nature/koolmeestje.jpg", "angle": 0, "step": 2 },
+			{ "image": "/posters/nature/papagaar.jpg", "angle": 40, "step": 2 },
+			{ "image": "/posters/nature/ShadowBird.jpg", "angle": 80, "step": 2 },
+			{ "image": "/posters/nature/VERYGHIGHFUCKINGBIRD.jpg", "angle": 120, "step": 2 },
+			{ "image": "/posters/nature/DUCK.jpg", "angle": 160, "step": 2 },
+			{ "image": "/posters/nature/KUTMEERKOET.jpg", "angle": 200, "step": 2 },
+			{ "image": "/posters/nature/pharanttinbushes.jpg", "angle": 240, "step": 2 },
+			{ "image": "/posters/nature/Hooglandjezijprofiel.jpg", "angle": 280, "step": 2 },
+			{ "image": "/posters/nature/HORSEy.jpg", "angle": 320, "step": 2 },
+
+			{ "image": "/posters/nature/BRUHBURB.jpg", "angle": 0, "step": 3 },
+			{ "image": "/posters/nature/burdonhooglander.jpg", "angle": 24, "step": 3 },
+			{ "image": "/posters/nature/hooglandinbushed.jpg", "angle": 48, "step": 3 },
+			{ "image": "/posters/nature/GIRAFE.jpg", "angle": 72, "step": 3 },
+			{ "image": "/posters/nature/aapwannabyfrondagnle.jpg", "angle": 96, "step": 3 },
+			{ "image": "/posters/nature/wannebeaapotheragne.jpg", "angle": 120, "step": 3 },
+			{ "image": "/posters/nature/upsidedownslith.jpg", "angle": 144, "step": 3 },
+			{ "image": "/posters/nature/rarw.jpg", "angle": 168, "step": 3 },
+			{ "image": "/posters/nature/antsss.jpg", "angle": 192, "step": 3 },
+			{ "image": "/posters/nature/VERYCLOSEBEE.jpg", "angle": 216, "step": 3 },
+			{ "image": "/posters/nature/Deer.jpg", "angle": 240, "step": 3 },
+			{ "image": "/posters/nature/LION.jpg", "angle": 264, "step": 3 },
+			{ "image": "/posters/nature/LION2.jpg", "angle": 288, "step": 3 },
+			{ "image": "/posters/nature/MEEUW.jpg", "angle": 312, "step": 3 },
+			{ "image": "/posters/nature/Phasant3.jpg", "angle": 336, "step": 3 }
 		]
 	}
 ]

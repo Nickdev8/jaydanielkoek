@@ -23,6 +23,8 @@
 
 	let cmodelGltf = $state<ThrelteGltf>();
 	let lensGltf = $state<ThrelteGltf>();
+	let bodySettled = $state(false);
+	let lensSettled = $state(false);
 	let hasLoaded = false;
 
 	const showBody = $derived(lens >= 0);
@@ -47,21 +49,60 @@
 		});
 	};
 
-	$effect(() => {
-		if (cmodelGltf) configureMaterials(cmodelGltf);
-		if (lensGltf) configureMaterials(lensGltf);
-
-		if (hasLoaded || (showBody && !cmodelGltf) || (showLens && !lensGltf)) return;
+	const reportReady = () => {
+		if (hasLoaded || (showBody && !bodySettled) || (showLens && !lensSettled)) return;
 
 		hasLoaded = true;
 		onready?.();
+	};
+
+	const onBodyLoad = (gltf: ThrelteGltf) => {
+		configureMaterials(gltf);
+		bodySettled = true;
+		reportReady();
+	};
+
+	const onLensLoad = (gltf: ThrelteGltf) => {
+		configureMaterials(gltf);
+		lensSettled = true;
+		reportReady();
+	};
+
+	const onModelError = (model: 'body' | 'lens', error: Error) => {
+		console.error(`[Cmodel] Could not load the ${model} model.`, error);
+
+		if (model === 'body') bodySettled = true;
+		else lensSettled = true;
+
+		reportReady();
+	};
+
+	$effect(() => {
+		if (cmodelGltf) configureMaterials(cmodelGltf);
+		if (lensGltf) configureMaterials(lensGltf);
 	});
 </script>
 
 {#if showBody}
-	<GLTF url="/models/cmodel.glb" bind:gltf={cmodelGltf} {position} {rotation} {scale} />
+	<GLTF
+		url="/models/cmodel.glb"
+		bind:gltf={cmodelGltf}
+		{position}
+		{rotation}
+		{scale}
+		onload={onBodyLoad}
+		onerror={(error) => onModelError('body', error)}
+	/>
 {/if}
 
 {#if showLens}
-	<GLTF url={lensModel} bind:gltf={lensGltf} {position} {rotation} {scale} />
+	<GLTF
+		url={lensModel}
+		bind:gltf={lensGltf}
+		{position}
+		{rotation}
+		{scale}
+		onload={onLensLoad}
+		onerror={(error) => onModelError('lens', error)}
+	/>
 {/if}

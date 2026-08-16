@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
+	import SceneLoadingVeil from '$lib/components/SceneLoadingVeil.svelte';
 	import Scene from './Scene.svelte';
 
 	let started = $state(false);
@@ -22,7 +23,7 @@
 		isLeaving = true;
 		await wait(600);
 		sessionStorage.setItem('showcase-controls-hint', 'true');
-		goto('/showcase/urban');
+		goto('/showcase/nature');
 	}
 
 	function onready() {
@@ -56,9 +57,7 @@
 		<p class="transition-name">Jayden Daniel Koek</p>
 	{/if}
 
-	<div class:loaded={!isLoading} class:leaving={isLeaving} class="entry-veil" aria-hidden="true">
-		<span class="loading-wheel"></span>
-	</div>
+	<SceneLoadingVeil loaded={!isLoading} leaving={isLeaving} duration={700} />
 </main>
 
 <style>
@@ -77,6 +76,7 @@
 		height: 100svh;
 		overflow-x: hidden;
 		overflow-y: hidden;
+		background: #033542;
 	}
 	main::after {
 		content: '';
@@ -91,34 +91,6 @@
 			rgba(0, 0, 0, 0.6) 74%,
 			rgba(0, 0, 0, 0.9) 100%
 		);
-	}
-	.entry-veil {
-		position: absolute;
-		z-index: 20;
-		inset: 0;
-		background: #000;
-		pointer-events: all;
-		opacity: 1;
-		transition: opacity 700ms ease;
-	}
-	.entry-veil.loaded {
-		pointer-events: none;
-		opacity: 0;
-	}
-	.entry-veil.leaving {
-		pointer-events: all;
-		opacity: 1;
-	}
-	.loading-wheel {
-		position: absolute;
-		right: clamp(1.5rem, 3vw, 3rem);
-		bottom: clamp(1.5rem, 3vw, 3rem);
-		width: 1.1rem;
-		aspect-ratio: 1;
-		border: 1px solid rgba(255, 255, 255, 0.28);
-		border-top-color: #fff;
-		border-radius: 50%;
-		animation: spin 800ms linear infinite;
 	}
 	.intro {
 		position: absolute;
@@ -223,11 +195,6 @@
 		transform: translate(-50%, -50%);
 		animation: transition-name-in 220ms ease both;
 	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
 	@keyframes transition-name-in {
 		from {
 			opacity: 0;
@@ -237,10 +204,6 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.loading-wheel {
-			animation: none;
-		}
-		.entry-veil,
 		.intro,
 		.credit,
 		.copyright,

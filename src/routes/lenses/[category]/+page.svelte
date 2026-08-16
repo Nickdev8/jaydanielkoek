@@ -1,41 +1,50 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import type { ShowcaseCategory } from '$lib/showcase/types';
 	import LensSelectorScene from './LensSelectorScene.svelte';
+	import SceneLoadingVeil from '$lib/components/SceneLoadingVeil.svelte';
 
 	let { data }: { data: { category: ShowcaseCategory; categories: ShowcaseCategory[] } } = $props();
-	let selectedLens = $state(0);
+	let selectedLens = $state(untrack(() => data.category.lens));
 	let attachRequested = $state(false);
-	let attachAfterSelection = $state(false);
-	let carouselRequested = $state(false);
-	const lensKeyHint = $derived(
-		data.categories.length === 1 ? '1' : `1–${data.categories.length}`
-	);
+	let isLoading = $state(true);
+	let loadedModelKeys = new Set<string>();
 
 	$effect(() => {
 		selectedLens = data.category.lens;
 		attachRequested = false;
-		attachAfterSelection = false;
-		carouselRequested = false;
+		isLoading = true;
+		loadedModelKeys = new Set();
 	});
 
+	const onModelReady = (modelKey: string) => {
+		if (loadedModelKeys.has(modelKey)) return;
+
+		loadedModelKeys.add(modelKey);
+		if (loadedModelKeys.size !== data.categories.length + 1) return;
+
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				isLoading = false;
+			});
+		});
+	};
+
 	const selectLens = (lens: number) => {
-		if (attachRequested) return;
+		if (isLoading || attachRequested) return;
 		selectedLens = lens;
-		carouselRequested = true;
 	};
 
 	const selectLensAndAttach = (lens: number) => {
 		selectLens(lens);
-		attachAfterSelection = true;
+		attachRequested = true;
 	};
 
 	const attachSelectedLens = () => {
-		if (attachRequested) return;
-		carouselRequested = true;
-		attachAfterSelection = true;
+		if (isLoading || attachRequested) return;
+		attachRequested = true;
 	};
 
 	const selectByOffset = (offset: number) => {
@@ -47,13 +56,6 @@
 		selectLens(data.categories[nextIndex].lens);
 	};
 
-	const attachWhenCarouselSettles = () => {
-		if (!attachAfterSelection || attachRequested) return;
-
-		attachAfterSelection = false;
-		attachRequested = true;
-	};
-
 	const onAttached = (categoryId: string) => goto(`/showcase/${categoryId}`);
 
 	onMount(() => {
@@ -63,21 +65,28 @@
 		let dragStartY = 0;
 
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (attachRequested) return;
-			if (event.code === 'ArrowLeft') {
+			if (isLoading || attachRequested) return;
+			if (event.code === 'KeyA' || event.code === 'ArrowLeft') {
 				event.preventDefault();
 				selectByOffset(-1);
 				return;
 			}
-			if (event.code === 'ArrowRight') {
+			if (event.code === 'KeyD' || event.code === 'ArrowRight') {
 				event.preventDefault();
 				selectByOffset(1);
 				return;
 			}
+			if (event.code === 'KeyS' || event.code === 'ArrowDown' || event.code === 'Space') {
+				if (event.repeat) return;
 
-			const lensNumber = Number(event.key);
-			if (lensNumber >= 1 && lensNumber <= 5) {
-				const category = data.categories.find((category) => category.lens === lensNumber);
+				event.preventDefault();
+				attachSelectedLens();
+				return;
+			}
+
+			const categoryNumber = Number(event.key);
+			if (categoryNumber >= 1 && categoryNumber <= data.categories.length) {
+				const category = data.categories[categoryNumber - 1];
 				if (!category) return;
 
 				event.preventDefault();
@@ -86,7 +95,13 @@
 		};
 
 		const onPointerDown = (event: PointerEvent) => {
-			if (attachRequested || event.button !== 0 || !(event.target instanceof HTMLCanvasElement)) return;
+			if (
+				isLoading ||
+				attachRequested ||
+				event.button !== 0 ||
+				!(event.target instanceof HTMLCanvasElement)
+			)
+				return;
 
 			isDragging = true;
 			dragStartX = event.clientX;
@@ -139,18 +154,23 @@
 				categories={data.categories}
 				bind:selectedLens
 				{attachRequested}
-				{attachAfterSelection}
-				{carouselRequested}
+				ready={!isLoading}
+				onmodelready={onModelReady}
 				onlensselected={selectLens}
-				onselectionsettled={attachWhenCarouselSettles}
 				onattached={onAttached}
 			/>
 		{/key}
 	</Canvas>
 
-	<p class="selector-tooltip">
-		Press {lensKeyHint} to select · drag left/right to browse · drag down to attach
-	</p>
+	<div class="selector-tooltip">
+	<span>Use arrow keys or drag to browse lenses</span>
+	<span class="drag-control">
+		<svg viewBox="0 0 48 20" aria-hidden="true"><path d="m8 10 7-6m-7 6 7 6m-7-6h32m-7-6 7 6-7 6" /></svg>
+		Drag horizontally to browse
+	</span>
+	</div>
+
+	<SceneLoadingVeil loaded={!isLoading} background="#fff" foreground="#161a1a" duration={450} />
 </main>
 
 <style>
@@ -180,9 +200,38 @@
 		bottom: clamp(1.5rem, 4vw, 3rem);
 		left: 50%;
 		margin: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: clamp(0.75rem, 2vw, 1.5rem);
 		color: rgba(22, 26, 26, 0.72);
 		font: 300 clamp(0.75rem, 1vw, 0.9rem) system-ui, sans-serif;
 		letter-spacing: 0.03em;
 		transform: translateX(-50%);
+	}
+	.drag-control {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.drag-control svg {
+		width: 1.45rem;
+		height: 1.1rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-width: 1.35;
+	}
+	.drag-control:last-child svg {
+		width: 0.9rem;
+		height: 1.35rem;
+	}
+	@media (max-width: 640px) {
+		.selector-tooltip {
+			flex-direction: column;
+			gap: 0.45rem;
+			text-align: center;
+		}
 	}
 </style>

@@ -4,14 +4,23 @@
 	import { onMount } from 'svelte';
 	import type { ShowcaseCategory } from '$lib/showcase/types';
 	import Scene from '../Scene.svelte';
+	import SceneLoadingVeil from '$lib/components/SceneLoadingVeil.svelte';
 
 	let { data }: { data: { category: ShowcaseCategory } } = $props();
 	let showControlsHint = $state(false);
+	let isLoading = $state(true);
 	let pointerStart: { x: number; y: number } | undefined;
 
 	const movementKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
 
 	const openLensSelector = () => goto(`/lenses/${data.category.id}`);
+	const onready = () => {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				isLoading = false;
+			});
+		});
+	};
 
 	onMount(() => {
 		showControlsHint = sessionStorage.getItem('showcase-controls-hint') === 'true';
@@ -65,7 +74,7 @@
 
 <main>
 	<Canvas>
-		<Scene category={data.category} />
+		<Scene category={data.category} {onready} />
 	</Canvas>
 
 	<button class="change-category" onclick={openLensSelector}>Change category</button>
@@ -76,6 +85,8 @@
 	{#if showControlsHint}
 		<p class="controls-hint">Use the arrow keys or drag to move</p>
 	{/if}
+
+	<SceneLoadingVeil loaded={!isLoading} />
 </main>
 
 <style>

@@ -17,29 +17,37 @@
 		maximumCameraDistance,
 		cameraStartRotation = 0,
 		cameraPosition = $bindable([0, 0, 0] as [number, number, number]),
+		normalCameraPosition = $bindable([0, 0, 0] as [number, number, number]),
 		cameraRotation = $bindable(0)
 	}: {
 		maximumCameraDistance: number;
 		cameraStartRotation?: number;
 		cameraPosition?: [number, number, number];
+		normalCameraPosition?: [number, number, number];
 		cameraRotation?: number;
 	} = $props();
 
 	// Camera
 	const keyboard = useKeyboard();
-	const moveSpeed = 4;
+	const moveSpeed = 2.6;
 	const turnPivotDistance = 0.75;
 	const minimumTurnRadius = 4.5;
-	const lateralSpeed = 4;
+	const lateralSpeed = 3;
+	const innerTurnSpeed = 0.24;
+	const outerTurnSpeed = 0.34;
+	const adaptiveTurnBlend = 0.5;
 	const movementBoundarySoftness = 3;
-	const dragSensitivity = 0.08;
+	const dragSensitivity = 0.012;
+	const dragResponse = 8;
 	let angularVelocity = 0;
 	let movementVelocity = 0;
 	let dragTurnInput = 0;
 	let dragMoveInput = 0;
+	let dragTurnTarget = 0;
+	let dragMoveTarget = 0;
 	let isDragging = false;
-	let lastPointerX = 0;
-	let lastPointerY = 0;
+	let dragStartX = 0;
+	let dragStartY = 0;
 
 	const turnSmoothness = 3;
 	const movementSmoothness = 3;
@@ -54,10 +62,18 @@
 	let orbitStartRotation = $state<[number, number, number]>([0, 0, 0]);
 	let orbitMarker = $state.raw<Mesh>();
 	let orbitDirection = $state.raw<Group>();
+	let hasAppliedStartRotation = false;
 
 	const orbitWorldPosition = new Vector3();
 	const orbitWorldRotation = new Quaternion();
 	const orbitEuler = new Euler();
+
+	$effect(() => {
+		if (!pivot || hasAppliedStartRotation) return;
+
+		pivot.rotation.y = degreesToRadians(cameraStartRotation);
+		hasAppliedStartRotation = true;
+	});
 
 	$effect(() => {
 		if (!orbitDebug.enabled || !viewerCamera) return;
@@ -92,20 +108,22 @@
 				return;
 
 			isDragging = true;
-			lastPointerX = event.clientX;
-			lastPointerY = event.clientY;
+			dragStartX = event.clientX;
+			dragStartY = event.clientY;
 		};
 
 		const onPointerMove = (event: PointerEvent) => {
 			if (!isDragging) return;
 
-			dragTurnInput = clamp((lastPointerX - event.clientX) * dragSensitivity, -1, 1);
-			dragMoveInput = clamp((event.clientY - lastPointerY) * dragSensitivity, -1, 1);
-			lastPointerX = event.clientX;
-			lastPointerY = event.clientY;
+			dragTurnTarget = clamp((dragStartX - event.clientX) * dragSensitivity, -1, 1);
+			dragMoveTarget = clamp((event.clientY - dragStartY) * dragSensitivity, -1, 1);
 		};
 
-		const stopDragging = () => (isDragging = false);
+		const stopDragging = () => {
+			isDragging = false;
+			dragTurnTarget = 0;
+			dragMoveTarget = 0;
+		};
 
 		window.addEventListener('pointerdown', onPointerDown);
 		window.addEventListener('pointermove', onPointerMove);
@@ -144,17 +162,26 @@
 			});
 			turnDirection = clamp(turnDirection + dragTurnInput, -1, 1);
 			moveDirection = clamp(moveDirection + dragMoveInput, -1, 1);
-			dragTurnInput = damp(dragTurnInput, 0, 16, delta);
-			dragMoveInput = damp(dragMoveInput, 0, 16, delta);
+			dragTurnInput = damp(dragTurnInput, dragTurnTarget, dragResponse, delta);
+			dragMoveInput = damp(dragMoveInput, dragMoveTarget, dragResponse, delta);
 
-			const radius = Math.max(0.001, Math.hypot(camera.position.x, camera.position.z));
-			const turnRadius = Math.max(radius, minimumTurnRadius);
-
-			const targetAngularVelocity = turnDirection * (lateralSpeed / turnRadius);
+			const cameraDistance = -camera.position.z;
+			const distanceProgress = clamp(
+				(cameraDistance - turnPivotDistance) / (maximumCameraDistance - turnPivotDistance),
+				0,
+				1
+			);
+			const turnRadius = Math.max(cameraDistance, minimumTurnRadius);
+			const radiusAwareTurnSpeed = lateralSpeed / turnRadius;
+			const outerRingTurnSpeed =
+				innerTurnSpeed + (outerTurnSpeed - innerTurnSpeed) * distanceProgress;
+			const turnSpeed =
+				radiusAwareTurnSpeed * adaptiveTurnBlend +
+				outerRingTurnSpeed * (1 - adaptiveTurnBlend);
+			const targetAngularVelocity = turnDirection * turnSpeed;
 			angularVelocity = damp(angularVelocity, targetAngularVelocity, turnSmoothness, delta);
 			pivot.rotation.y -= angularVelocity * delta;
 
-			const cameraDistance = -camera.position.z;
 			const remainingDistance =
 				moveDirection > 0
 					? maximumCameraDistance - cameraDistance
@@ -182,14 +209,20 @@
 				orbitDirection?.quaternion.copy(orbitWorldRotation);
 			}
 
-			cameraPosition = [worldCameraPosition.x, worldCameraPosition.y, worldCameraPosition.z];
+			const physicalCameraPosition: [number, number, number] = [
+				worldCameraPosition.x,
+				worldCameraPosition.y,
+				worldCameraPosition.z
+			];
+			cameraPosition = physicalCameraPosition;
+			normalCameraPosition = physicalCameraPosition;
 			cameraRotation = pivot.rotation.y;
 		},
 		{ after: keyboard.task }
 	);
 </script>
 
-	<T.Group bind:ref={pivot} rotation.y={degreesToRadians(cameraStartRotation)}>
+	<T.Group bind:ref={pivot}>
 	<T.Group bind:ref={camera} position={[0, 0, -turnPivotDistance]}>
 		<T.PerspectiveCamera bind:ref={viewerCamera} makeDefault fov={45} />
 	</T.Group>

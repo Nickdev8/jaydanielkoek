@@ -1,14 +1,28 @@
-# Jayden Daniel Koek
+# Jayden Daniel Koek — interactive photography portfolio
+![Homepage preview](static/readme-homepage.png)
 
-This is a minimal SvelteKit + Threlte project.
+This is a portfolio site for my good friend Jayden, a photographer. I made it to learn 3D web design with Threlte and to give visitors a way to walk through Jayden's images instead of only scrolling past them. It is a project for [#beest](https://hackclub.com/).
 
-- `/` is an empty Threlte canvas, ready for the next standalone 3D page.
-- `/showcase` is the existing interactive poster showcase.
+## Tech stack
+- [SvelteKit](https://kit.svelte.dev/) for routing and the site shell
+- [Threlte](https://threlte.xyz/) and [Three.js](https://threejs.org/) for the 3D scenes
+- Blender for the camera and film assets
+- Docker Compose for deployment
 
-Each 3D route should own its scene files. For a new page, create a new folder under `src/routes`, add its own `+page.svelte`, and keep route-specific Threlte components in that same folder.
+## Run locally
 
 ```bash
+npm install
 npm run dev
-npm run check
-npm run build
 ```
+
+## Deploy with Docker
+
+Create a local `.env` from the example and add the contact details:
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+```
+
+The container listens only on `127.0.0.1:3405`; place a reverse proxy in front of it for the public site. I made it this way to supprt my own caddy setup

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { T } from '@threlte/core';
+	import { T, useTask } from '@threlte/core';
 	import { clamp } from 'three/src/math/MathUtils.js';
 	import { useTexture } from '@threlte/extras';
-	import { untrack } from 'svelte';
-	import { Color, SRGBColorSpace, type Texture } from 'three';
+	import { onMount, untrack } from 'svelte';
+	import { Color, SRGBColorSpace, Vector3, type ShaderMaterial, type Texture } from 'three';
 	type Poster = {
 		image: string;
 		angle: number;
@@ -16,7 +16,8 @@
 		distanceByStep,
 		cameraPosition = [0, 0, 0] as [number, number, number],
 		backgroundColor = '#111824',
-		fogDensity = 0.052
+		fogDensity = 0.052,
+		onready
 	}: {
 		posters?: Poster[];
 		floorHeight?: number;
@@ -24,20 +25,26 @@
 		cameraPosition?: [number, number, number];
 		backgroundColor?: string;
 		fogDensity?: number;
+		onready?: () => void;
 	} = $props();
 
 	const posterHeight = 2.5;
+	// Keep the prints just above the reflective surface to avoid a visible intersection.
+	const posterSurfaceGap = 0.04;
 	const uniforms = {
 		map: { value: null as Texture | null },
-		burnAmount: { value: 0 },
 		fogColor: { value: new Color('#111824') },
 		fogDensity: { value: 0.052 }
 	};
+	const posterMaterialRefs = $state.raw<Record<string, ShaderMaterial | undefined>>({});
+	let hasReportedReady = false;
 	const vertexShader = `
 		varying vec2 vUv;
 		varying vec3 vViewPosition;
+		varying vec3 vWorldPosition;
 		void main() {
 			vUv = uv;
+			vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
 			vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
 			vViewPosition = viewPosition.xyz;
 			gl_Position = projectionMatrix * viewPosition;
@@ -45,19 +52,28 @@
 	`;
 	const fragmentShader = `
 		uniform sampler2D map;
-		uniform float burnAmount;
+		uniform float dissolveRadius;
+		uniform float dissolveEdge;
+		uniform vec3 dissolveOrigin;
 		uniform vec3 fogColor;
 		uniform float fogDensity;
 		varying vec2 vUv;
 		varying vec3 vViewPosition;
-		float hash(vec2 p) { return fract(sin(dot(p, vec2(41.27, 289.19))) * 43758.5453); }
+		varying vec3 vWorldPosition;
 		void main() {
 			vec4 texel = texture2D(map, vUv);
-			if (texel.a < 0.01 || hash(floor(vUv * vec2(120.0, 180.0))) < burnAmount) discard;
+			float distanceFromCamera = distance(vWorldPosition, dissolveOrigin);
+			float posterVisibility = smoothstep(
+				dissolveRadius - dissolveEdge,
+				dissolveRadius + dissolveEdge,
+				distanceFromCamera
+			);
+			float alpha = texel.a * posterVisibility;
+			if (alpha < 0.01) discard;
 			float fogDepth = -vViewPosition.z;
 			float fogRamp = smoothstep(5.5, 9.5, fogDepth);
 			float fogAmount = min((1.0 - exp(-fogDensity * fogDensity * fogDepth * fogDepth)) * fogRamp, 0.90);
-			gl_FragColor = vec4(mix(texel.rgb, fogColor, fogAmount), texel.a);
+			gl_FragColor = vec4(mix(texel.rgb, fogColor, fogAmount), alpha);
 			#include <colorspace_fragment>
 		}
 	`;
@@ -86,23 +102,17 @@
 
 	const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
-	const posterDistanceFromCamera = (poster: Poster) => {
-		const [x, y, z] = positionFromCircle(
-			poster.angle,
-			distanceForStep(poster.step),
-			floorHeight + posterHeight / 2
-		);
+	// A physical sphere around the camera intersects each poster as a soft circle.
+	// It needs no custom plane-coordinate maths, so it follows the camera exactly.
+	useTask(() => {
+		for (const poster of posters) {
+			const material = posterMaterialRefs[poster.image];
+			if (!material) continue;
 
-		return Math.hypot(x - cameraPosition[0], y - cameraPosition[1], z - cameraPosition[2]);
-	};
-
-	// Starts when the camera is close and reaches a complete burn before it
-	// crosses the poster plane.
-	const burnAmountForDistance = (distance: number) => {
-		const progress = clamp((2.6 - distance) / 1.5, 0, 1);
-
-		return progress ** 4;
-	};
+			const shaderUniforms = material.uniforms;
+			(shaderUniforms.dissolveOrigin.value as Vector3).set(...cameraPosition);
+		}
+	});
 
 	const posterTextureSources: Record<string, string> = untrack(() =>
 		Object.fromEntries(posters.map((poster) => [poster.image, poster.image]))
@@ -115,6 +125,17 @@
 			error
 		});
 	};
+
+	const reportReady = () => {
+		if (hasReportedReady) return;
+
+		hasReportedReady = true;
+		onready?.();
+	};
+
+	onMount(() => {
+		posterTextures.promise.then(reportReady).catch(reportReady);
+	});
 </script>
 
 {#await posterTextures then textures}
@@ -123,7 +144,7 @@
 			position={positionFromCircle(
 				poster.angle,
 				distanceForStep(poster.step),
-				floorHeight + posterHeight / 2
+				floorHeight + posterSurfaceGap + posterHeight / 2
 			)}
 			rotation.y={-degreesToRadians(poster.angle)}
 		>
@@ -136,13 +157,18 @@
 
 			{@const texture = textures[poster.image]}
 			{@const preparedTexture = ((texture.colorSpace = SRGBColorSpace), texture)}
-			{@const burnAmount = burnAmountForDistance(posterDistanceFromCamera(poster))}
+			{@const posterAspect = texture.image.width / texture.image.height}
+			{@const dissolveEdge = 0.11}
+			{@const dissolveRadius = Math.hypot((posterHeight * posterAspect) / 2, posterHeight / 2) + 0.12}
 			{@const materialUniforms = {
 				...uniforms,
 				map: { value: preparedTexture },
-				burnAmount: { value: burnAmount }
+				dissolveRadius: { value: dissolveRadius },
+				dissolveEdge: { value: dissolveEdge },
+				dissolveOrigin: { value: new Vector3(...cameraPosition) }
 			}}
 			<T.ShaderMaterial
+				bind:ref={posterMaterialRefs[poster.image]}
 				{vertexShader}
 				{fragmentShader}
 				uniforms={materialUniforms}
