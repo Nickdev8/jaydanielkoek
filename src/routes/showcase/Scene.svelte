@@ -14,7 +14,9 @@
 	const fogDensity = 0.075;
 	const cameraStartRotation = 0;
 	const floorHeight = -1.4;
-	const maximumCameraDistance = Math.max(...distanceByStep.slice(1)) + 2;
+	const maximumCameraStep = 2.4;
+	const maximumCameraDistance =
+		distanceByStep[2] + (distanceByStep[3] - distanceByStep[2]) * (maximumCameraStep - 2);
 
 	let cameraPosition = $state<[number, number, number]>([0, 0, 0]);
 	let normalCameraPosition = $state<[number, number, number]>([0, 0, 0]);

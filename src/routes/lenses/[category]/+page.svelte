@@ -38,7 +38,9 @@
 	};
 
 	const selectLensAndAttach = (lens: number) => {
-		selectLens(lens);
+		if (isLoading || attachRequested) return;
+
+		selectedLens = lens;
 		attachRequested = true;
 	};
 
@@ -156,7 +158,7 @@
 				{attachRequested}
 				ready={!isLoading}
 				onmodelready={onModelReady}
-				onlensselected={selectLens}
+				onlensselected={selectLensAndAttach}
 				onattached={onAttached}
 			/>
 		{/key}

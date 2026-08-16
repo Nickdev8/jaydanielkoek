@@ -46,10 +46,13 @@
 	const portraitAmount = $derived(
 		clamp((0.9 - size.current.width / size.current.height) / 0.4, 0, 1)
 	);
+	const shortLandscapeAmount = $derived(
+		size.current.width >= 641 ? clamp((740 - size.current.height) / 260, 0, 1) : 0
+	);
 	const responsiveStartPosition = $derived([
-		startPosition[0] + 0.18 * portraitAmount,
-		startPosition[1] + 0.06 * portraitAmount,
-		startPosition[2] + 1.05 * portraitAmount
+		startPosition[0] + 0.18 * portraitAmount - 0.58 * shortLandscapeAmount,
+		startPosition[1] + 0.06 * portraitAmount + 0.1 * shortLandscapeAmount,
+		startPosition[2] + 1.05 * portraitAmount + 0.35 * shortLandscapeAmount
 	] as [number, number, number]);
 	const responsiveTargetPosition = $derived([
 		targetPosition[0],
@@ -61,7 +64,9 @@
 		startRotation[1] - 0.02 * portraitAmount,
 		startRotation[2]
 	] as [number, number, number]);
-	const responsiveStartFov = $derived(startFov + 16 * portraitAmount);
+	const responsiveStartFov = $derived(
+		startFov + 16 * portraitAmount + 4 * shortLandscapeAmount
+	);
 	const responsiveTargetFov = $derived(targetFov + 8 * portraitAmount);
 
 	$effect(() => {

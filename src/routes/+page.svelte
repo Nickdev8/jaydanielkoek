@@ -249,4 +249,13 @@
 			white-space: nowrap;
 		}
 	}
+	@media (min-width: 641px) and (max-height: 740px) {
+		.intro {
+			top: clamp(1.25rem, 4vh, 2.25rem);
+			left: clamp(1.5rem, 4vw, 3.5rem);
+		}
+		.start-button {
+			margin-top: clamp(1.5rem, 4vh, 2.5rem);
+		}
+	}
 </style>
