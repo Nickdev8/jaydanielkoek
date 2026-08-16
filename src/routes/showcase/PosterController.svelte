@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
+	import { T } from '@threlte/core';
 	import { clamp } from 'three/src/math/MathUtils.js';
 	import { useTexture } from '@threlte/extras';
 	import { onMount, untrack } from 'svelte';
-	import { Color, SRGBColorSpace, Vector3, type ShaderMaterial, type Texture } from 'three';
+	import { Color, SRGBColorSpace, type Texture } from 'three';
 	type Poster = {
 		image: string;
 		angle: number;
@@ -36,15 +36,12 @@
 		fogColor: { value: new Color('#111824') },
 		fogDensity: { value: 0.052 }
 	};
-	const posterMaterialRefs = $state.raw<Record<string, ShaderMaterial | undefined>>({});
 	let hasReportedReady = false;
 	const vertexShader = `
 		varying vec2 vUv;
 		varying vec3 vViewPosition;
-		varying vec3 vWorldPosition;
 		void main() {
 			vUv = uv;
-			vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
 			vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
 			vViewPosition = viewPosition.xyz;
 			gl_Position = projectionMatrix * viewPosition;
@@ -52,23 +49,13 @@
 	`;
 	const fragmentShader = `
 		uniform sampler2D map;
-		uniform float dissolveRadius;
-		uniform float dissolveEdge;
-		uniform vec3 dissolveOrigin;
 		uniform vec3 fogColor;
 		uniform float fogDensity;
 		varying vec2 vUv;
 		varying vec3 vViewPosition;
-		varying vec3 vWorldPosition;
 		void main() {
 			vec4 texel = texture2D(map, vUv);
-			float distanceFromCamera = distance(vWorldPosition, dissolveOrigin);
-			float posterVisibility = smoothstep(
-				dissolveRadius - dissolveEdge,
-				dissolveRadius + dissolveEdge,
-				distanceFromCamera
-			);
-			float alpha = texel.a * posterVisibility;
+			float alpha = texel.a;
 			if (alpha < 0.01) discard;
 			float fogDepth = -vViewPosition.z;
 			float fogRamp = smoothstep(5.5, 9.5, fogDepth);
@@ -101,18 +88,6 @@
 	};
 
 	const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
-
-	// A physical sphere around the camera intersects each poster as a soft circle.
-	// It needs no custom plane-coordinate maths, so it follows the camera exactly.
-	useTask(() => {
-		for (const poster of posters) {
-			const material = posterMaterialRefs[poster.image];
-			if (!material) continue;
-
-			const shaderUniforms = material.uniforms;
-			(shaderUniforms.dissolveOrigin.value as Vector3).set(...cameraPosition);
-		}
-	});
 
 	const posterTextureSources: Record<string, string> = untrack(() =>
 		Object.fromEntries(posters.map((poster) => [poster.image, poster.image]))
@@ -157,18 +132,11 @@
 
 			{@const texture = textures[poster.image]}
 			{@const preparedTexture = ((texture.colorSpace = SRGBColorSpace), texture)}
-			{@const posterAspect = texture.image.width / texture.image.height}
-			{@const dissolveEdge = 0.11}
-			{@const dissolveRadius = Math.hypot((posterHeight * posterAspect) / 2, posterHeight / 2) + 0.12}
 			{@const materialUniforms = {
 				...uniforms,
-				map: { value: preparedTexture },
-				dissolveRadius: { value: dissolveRadius },
-				dissolveEdge: { value: dissolveEdge },
-				dissolveOrigin: { value: new Vector3(...cameraPosition) }
+				map: { value: preparedTexture }
 			}}
 			<T.ShaderMaterial
-				bind:ref={posterMaterialRefs[poster.image]}
 				{vertexShader}
 				{fragmentShader}
 				uniforms={materialUniforms}

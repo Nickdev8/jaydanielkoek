@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
-	import { T, useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
 	import { GLTF, HTML, OrbitControls, type ThrelteGltf, useDraco } from '@threlte/extras';
 	import type { Material, Mesh, PerspectiveCamera } from 'three';
 	import { damp } from 'three/src/math/MathUtils.js';
@@ -18,6 +18,12 @@
 	const filmEntryTargetPosition: [number, number, number] = [0, 0, 0];
 	const filmMoveStartDistance = 0.098;
 	const filmEntranceSpeed = 2;
+	const { size } = useThrelte();
+	const mobileFovOffset = $derived(
+		Math.min(8, Math.max(0, (0.9 - size.current.width / size.current.height) * 18))
+	);
+	const responsiveViewerCameraFov = $derived(viewerCameraFov + mobileFovOffset);
+	const responsiveEntryCameraFov = $derived(entryCameraFov + mobileFovOffset);
 	const contactEmail = env.PUBLIC_CONTACT_EMAIL;
 	const contactPhone = env.PUBLIC_CONTACT_PHONE;
 	const dracoLoader = useDraco('/draco/');
@@ -94,7 +100,12 @@
 			entranceSpeed,
 			animationDelta
 		);
-		viewerCamera.fov = damp(viewerCamera.fov, viewerCameraFov, entranceSpeed, animationDelta);
+		viewerCamera.fov = damp(
+			viewerCamera.fov,
+			responsiveViewerCameraFov,
+			entranceSpeed,
+			animationDelta
+		);
 		viewerCamera.updateProjectionMatrix();
 
 		const cameraDistanceToFinal = Math.hypot(
@@ -117,7 +128,7 @@
 	makeDefault
 	position={entryCameraPosition}
 	rotation={[0, Math.PI, 0]}
-	fov={entryCameraFov}
+	fov={responsiveEntryCameraFov}
 />
 
 {#if orbitDebug.enabled}

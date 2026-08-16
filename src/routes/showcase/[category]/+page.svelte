@@ -83,7 +83,10 @@
 	</p>
 
 	{#if showControlsHint}
-		<p class="controls-hint">Use the arrow keys or drag to move</p>
+		<p class="controls-hint">
+			<span class="desktop-controls">Use the arrow keys or drag to move</span>
+			<span class="mobile-controls">Drag up or down to move · sideways to turn</span>
+		</p>
 	{/if}
 
 	<SceneLoadingVeil loaded={!isLoading} />
@@ -105,6 +108,10 @@
 		height: 100svh;
 		overflow: hidden;
 		background: #080c15;
+	}
+	main :global(canvas) {
+		touch-action: none;
+		user-select: none;
 	}
 	main::after {
 		content: '';
@@ -145,6 +152,9 @@
 		transform: translateX(-50%);
 		transition: opacity 180ms ease;
 	}
+	.mobile-controls {
+		display: none;
+	}
 	.category-hint {
 		position: absolute;
 		z-index: 1;
@@ -182,6 +192,12 @@
 	@media (max-width: 767px) {
 		.category-hint {
 			display: none;
+		}
+		.desktop-controls {
+			display: none;
+		}
+		.mobile-controls {
+			display: inline;
 		}
 	}
 </style>

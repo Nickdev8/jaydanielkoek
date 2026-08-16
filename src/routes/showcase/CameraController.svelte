@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { T } from '@threlte/core';
-	import { useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
 	import { OrbitControls, useKeyboard } from '@threlte/extras';
 	import { onMount } from 'svelte';
 	import { orbitDebug } from '$lib/debug/orbit.svelte';
@@ -29,7 +28,11 @@
 
 	// Camera
 	const keyboard = useKeyboard();
-	const moveSpeed = 2.6;
+	const { size } = useThrelte();
+	const responsiveFov = $derived(
+		45 + Math.min(12, Math.max(0, (0.9 - size.current.width / size.current.height) * 24))
+	);
+	const moveSpeed = 4.8;
 	const turnPivotDistance = 0.75;
 	const minimumTurnRadius = 4.5;
 	const lateralSpeed = 3;
@@ -37,20 +40,28 @@
 	const outerTurnSpeed = 0.34;
 	const adaptiveTurnBlend = 0.5;
 	const movementBoundarySoftness = 3;
-	const dragSensitivity = 0.012;
-	const dragResponse = 8;
+	const dragSensitivity = 0.016;
+	const horizontalDragDeadZone = 26;
+	const verticalDragDeadZone = 18;
+	const verticalDragSensitivity = 0.009;
+	const dragResponse = 14;
+	const trackpadSensitivity = 0.012;
+	const trackpadDecay = 9;
 	let angularVelocity = 0;
 	let movementVelocity = 0;
 	let dragTurnInput = 0;
 	let dragMoveInput = 0;
 	let dragTurnTarget = 0;
 	let dragMoveTarget = 0;
+	let trackpadTurnInput = 0;
+	let trackpadMoveInput = 0;
 	let isDragging = false;
+	let touchDragging = false;
 	let dragStartX = 0;
 	let dragStartY = 0;
 
-	const turnSmoothness = 3;
-	const movementSmoothness = 3;
+	const turnSmoothness = 6;
+	const movementSmoothness = 6;
 
 	const worldCameraPosition = new Vector3();
 	const degreesToRadians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -90,6 +101,12 @@
 		return t * t * (3 - 2 * t);
 	};
 
+	const dragInputWithDeadZone = (offset: number, deadZone = 0, sensitivity = dragSensitivity) => {
+		if (Math.abs(offset) <= deadZone) return 0;
+
+		return Math.sign(offset) * (Math.abs(offset) - deadZone) * sensitivity;
+	};
+
 	keyboard.on('keyup', (event) => {
 		KeyboardControls.forEach((KeyboardControlCombination) => {
 			if (KeyboardControlCombination.includes(event.key.toLocaleLowerCase())) {
@@ -108,32 +125,68 @@
 				return;
 
 			isDragging = true;
+			touchDragging = event.pointerType === 'touch';
 			dragStartX = event.clientX;
 			dragStartY = event.clientY;
+			(event.target as HTMLCanvasElement).setPointerCapture?.(event.pointerId);
 		};
 
 		const onPointerMove = (event: PointerEvent) => {
 			if (!isDragging) return;
 
-			dragTurnTarget = clamp((dragStartX - event.clientX) * dragSensitivity, -1, 1);
-			dragMoveTarget = clamp((event.clientY - dragStartY) * dragSensitivity, -1, 1);
+			const horizontalOffset = touchDragging
+				? event.clientX - dragStartX
+				: dragStartX - event.clientX;
+			dragTurnTarget = clamp(
+				dragInputWithDeadZone(horizontalOffset, horizontalDragDeadZone),
+				-1,
+				1
+			);
+			dragMoveTarget = clamp(
+				dragInputWithDeadZone(
+					event.clientY - dragStartY,
+					verticalDragDeadZone,
+					verticalDragSensitivity
+				),
+				-1,
+				1
+			);
 		};
 
 		const stopDragging = () => {
 			isDragging = false;
+			touchDragging = false;
 			dragTurnTarget = 0;
 			dragMoveTarget = 0;
+		};
+
+		const onWheel = (event: WheelEvent) => {
+			if (orbitDebug.enabled || !(event.target instanceof HTMLCanvasElement)) return;
+
+			event.preventDefault();
+			trackpadTurnInput = clamp(
+				trackpadTurnInput - event.deltaX * trackpadSensitivity,
+				-1,
+				1
+			);
+			trackpadMoveInput = clamp(
+				trackpadMoveInput + event.deltaY * trackpadSensitivity,
+				-1,
+				1
+			);
 		};
 
 		window.addEventListener('pointerdown', onPointerDown);
 		window.addEventListener('pointermove', onPointerMove);
 		window.addEventListener('pointerup', stopDragging);
 		window.addEventListener('pointercancel', stopDragging);
+		window.addEventListener('wheel', onWheel, { passive: false });
 		return () => {
 			window.removeEventListener('pointerdown', onPointerDown);
 			window.removeEventListener('pointermove', onPointerMove);
 			window.removeEventListener('pointerup', stopDragging);
 			window.removeEventListener('pointercancel', stopDragging);
+			window.removeEventListener('wheel', onWheel);
 		};
 	});
 
@@ -160,10 +213,12 @@
 					1
 				);
 			});
-			turnDirection = clamp(turnDirection + dragTurnInput, -1, 1);
-			moveDirection = clamp(moveDirection + dragMoveInput, -1, 1);
+			turnDirection = clamp(turnDirection + dragTurnInput + trackpadTurnInput, -1, 1);
+			moveDirection = clamp(moveDirection + dragMoveInput + trackpadMoveInput, -1, 1);
 			dragTurnInput = damp(dragTurnInput, dragTurnTarget, dragResponse, delta);
 			dragMoveInput = damp(dragMoveInput, dragMoveTarget, dragResponse, delta);
+			trackpadTurnInput = damp(trackpadTurnInput, 0, trackpadDecay, delta);
+			trackpadMoveInput = damp(trackpadMoveInput, 0, trackpadDecay, delta);
 
 			const cameraDistance = -camera.position.z;
 			const distanceProgress = clamp(
@@ -224,7 +279,7 @@
 
 	<T.Group bind:ref={pivot}>
 	<T.Group bind:ref={camera} position={[0, 0, -turnPivotDistance]}>
-		<T.PerspectiveCamera bind:ref={viewerCamera} makeDefault fov={45} />
+		<T.PerspectiveCamera bind:ref={viewerCamera} makeDefault fov={responsiveFov} />
 	</T.Group>
 </T.Group>
 
@@ -233,7 +288,7 @@
 		makeDefault
 		position={orbitStartPosition}
 		rotation={orbitStartRotation}
-		fov={45}
+		fov={responsiveFov}
 	>
 		<OrbitControls enableDamping enableKeys={false} target.y={0} />
 	</T.PerspectiveCamera>

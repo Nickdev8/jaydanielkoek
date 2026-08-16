@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
 	import { ContactShadows, OrbitControls } from '@threlte/extras';
 	import { untrack } from 'svelte';
 	import { damp } from 'three/src/math/MathUtils.js';
@@ -43,6 +43,12 @@
 	const entryCameraFov = 36;
 	const topDownCameraFov = 30;
 	const maximumDelta = 1 / 30;
+	const { size } = useThrelte();
+	const responsiveFovOffset = $derived(
+		Math.min(8, Math.max(0, (1 - size.current.width / size.current.height) * 16))
+	);
+	const responsiveEntryFov = $derived(entryCameraFov + responsiveFovOffset);
+	const responsiveTopDownFov = $derived(topDownCameraFov + responsiveFovOffset);
 	const atmosphereDust = Array.from({ length: 34 }, (_, index) => {
 		const random = (seed: number) => {
 			const value = Math.sin(seed * 913.71) * 5172.19;
@@ -115,7 +121,7 @@
 			cameraSpeed,
 			delta
 		);
-		viewerCamera.fov = damp(viewerCamera.fov, topDownCameraFov, cameraSpeed, delta);
+		viewerCamera.fov = damp(viewerCamera.fov, responsiveTopDownFov, cameraSpeed, delta);
 		targetCamera.position.copy(targetPosition);
 		targetCamera.lookAt(targetLookAt);
 		viewerCamera.quaternion.slerp(targetCamera.quaternion, 1 - Math.exp(-cameraSpeed * delta));
@@ -126,7 +132,7 @@
 		Boolean(
 			viewerCamera &&
 			viewerCamera.position.distanceTo(targetPosition) < 0.015 &&
-			Math.abs(viewerCamera.fov - topDownCameraFov) < 0.05
+			Math.abs(viewerCamera.fov - responsiveTopDownFov) < 0.05
 		);
 
 	const isCarouselSettled = () => Math.abs(carouselOffset - targetCarouselOffset) < 0.003;
@@ -216,7 +222,7 @@
 	bind:ref={viewerCamera}
 	makeDefault
 	position={entryCameraPosition}
-	fov={entryCameraFov}
+	fov={responsiveEntryFov}
 />
 
 {#if orbitDebug.enabled}

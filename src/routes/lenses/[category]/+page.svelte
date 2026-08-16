@@ -163,11 +163,15 @@
 	</Canvas>
 
 	<div class="selector-tooltip">
-	<span>Use arrow keys or drag to browse lenses</span>
-	<span class="drag-control">
-		<svg viewBox="0 0 48 20" aria-hidden="true"><path d="m8 10 7-6m-7 6 7 6m-7-6h32m-7-6 7 6-7 6" /></svg>
-		Drag horizontally to browse
-	</span>
+		<span class="keyboard-control">Use arrow keys or drag to browse lenses</span>
+		<span class="drag-control">
+			<svg viewBox="0 0 48 20" aria-hidden="true"><path d="m8 10 7-6m-7 6 7 6m-7-6h32m-7-6 7 6-7 6" /></svg>
+			Drag sideways to browse
+		</span>
+		<span class="drag-control select-control">
+			<svg viewBox="0 0 20 48" aria-hidden="true"><path d="m10 8-6 7m6-7 6 7m-6-7v32m-6-7 6 7 6-7" /></svg>
+			Drag down to select
+		</span>
 	</div>
 
 	<SceneLoadingVeil loaded={!isLoading} background="#fff" foreground="#161a1a" duration={450} />
@@ -232,6 +236,9 @@
 			flex-direction: column;
 			gap: 0.45rem;
 			text-align: center;
+		}
+		.keyboard-control {
+			display: none;
 		}
 	}
 </style>

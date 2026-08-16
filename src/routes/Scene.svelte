@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core';
 	import { OrbitControls } from '@threlte/extras';
-	import { damp } from 'three/src/math/MathUtils.js';
+	import { clamp, damp } from 'three/src/math/MathUtils.js';
 	import { Color, Euler, Quaternion, Vector3, type Group, type Mesh, type PerspectiveCamera } from 'three';
 	import Cmodel from '$lib/components/Cmodel.svelte';
 	import ReflectiveSurface from '$lib/components/ReflectiveSurface.svelte';
@@ -41,8 +41,28 @@
 	let cmodelRotation = $state(cmodelStartRotation);
 	const targetVector = new Vector3();
 	const targetQuaternion = new Quaternion();
-	const { renderer, scene } = useThrelte();
+	const { renderer, scene, size } = useThrelte();
 	const sceneBackground = new Color(backgroundColor);
+	const portraitAmount = $derived(
+		clamp((0.9 - size.current.width / size.current.height) / 0.4, 0, 1)
+	);
+	const responsiveStartPosition = $derived([
+		startPosition[0] + 0.18 * portraitAmount,
+		startPosition[1] + 0.06 * portraitAmount,
+		startPosition[2] + 1.45 * portraitAmount
+	] as [number, number, number]);
+	const responsiveTargetPosition = $derived([
+		targetPosition[0],
+		targetPosition[1] + 0.04 * portraitAmount,
+		targetPosition[2] + 0.5 * portraitAmount
+	] as [number, number, number]);
+	const responsiveStartRotation = $derived([
+		startRotation[0],
+		startRotation[1] + 0.05 * portraitAmount,
+		startRotation[2]
+	] as [number, number, number]);
+	const responsiveStartFov = $derived(startFov + 16 * portraitAmount);
+	const responsiveTargetFov = $derived(targetFov + 8 * portraitAmount);
 
 	$effect(() => {
 		scene.background = sceneBackground;
@@ -66,10 +86,25 @@
 	useTask((delta) => {
 		if (!started || !viewerCamera || hasArrived) return;
 
-		viewerCamera.position.x = damp(viewerCamera.position.x, targetPosition[0], speed, delta);
-		viewerCamera.position.y = damp(viewerCamera.position.y, targetPosition[1], speed, delta);
-		viewerCamera.position.z = damp(viewerCamera.position.z, targetPosition[2], speed, delta);
-		viewerCamera.fov = damp(viewerCamera.fov, targetFov, speed, delta);
+		viewerCamera.position.x = damp(
+			viewerCamera.position.x,
+			responsiveTargetPosition[0],
+			speed,
+			delta
+		);
+		viewerCamera.position.y = damp(
+			viewerCamera.position.y,
+			responsiveTargetPosition[1],
+			speed,
+			delta
+		);
+		viewerCamera.position.z = damp(
+			viewerCamera.position.z,
+			responsiveTargetPosition[2],
+			speed,
+			delta
+		);
+		viewerCamera.fov = damp(viewerCamera.fov, responsiveTargetFov, speed, delta);
 		viewerCamera.updateProjectionMatrix();
 		cmodelRotation = damp(cmodelRotation, cmodelTargetRotation, speed, delta);
 
@@ -81,16 +116,16 @@
 			orbitDirection?.quaternion.copy(viewerCamera.quaternion);
 		}
 
-		targetVector.set(...targetPosition);
+		targetVector.set(...responsiveTargetPosition);
 
 		if (
 			viewerCamera.position.distanceTo(targetVector) < 0.01 &&
 			viewerCamera.quaternion.angleTo(targetQuaternion) < 0.01 &&
-			Math.abs(viewerCamera.fov - targetFov) < 0.01 &&
+			Math.abs(viewerCamera.fov - responsiveTargetFov) < 0.01 &&
 			Math.abs(cmodelRotation - cmodelTargetRotation) < 0.1
 		) {
 			cmodelRotation = cmodelTargetRotation;
-			viewerCamera.fov = targetFov;
+			viewerCamera.fov = responsiveTargetFov;
 			viewerCamera.updateProjectionMatrix();
 			hasArrived = true;
 			onarrive?.();
@@ -106,9 +141,9 @@
 	<T.PerspectiveCamera
 		bind:ref={viewerCamera}
 		makeDefault
-		position={startPosition}
-		rotation={startRotation}
-		fov={startFov}
+		position={responsiveStartPosition}
+		rotation={responsiveStartRotation}
+		fov={responsiveStartFov}
 	/>
 
 {#if orbitDebug.enabled}

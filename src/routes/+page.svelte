@@ -232,4 +232,16 @@
 			animation-duration: 0ms;
 		}
 	}
+	@media (max-width: 640px) {
+		.intro {
+			top: clamp(3rem, 10vh, 5rem);
+			left: 50%;
+			width: calc(100% - 3rem);
+			text-align: center;
+			transform: translateX(-50%);
+		}
+		.start-button {
+			margin-top: 2.25rem;
+		}
+	}
 </style>
