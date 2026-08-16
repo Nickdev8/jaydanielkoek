@@ -35,7 +35,7 @@
 	}
 </script>
 
-<main>
+<main class="home-page">
 	<Canvas>
 		<Scene {started} {onarrive} {onready} />
 	</Canvas>
@@ -69,6 +69,10 @@
 		margin: 0;
 		min-height: 100%;
 		background: #111;
+	}
+	:global(html:has(.home-page)),
+	:global(body:has(.home-page)) {
+		background: #033542;
 	}
 	main {
 		position: relative;
