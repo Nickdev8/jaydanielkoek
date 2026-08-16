@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
 	import { Color, PlaneGeometry, ShaderMaterial } from 'three';
 	import { Reflector } from 'three/addons/objects/Reflector.js';
 
@@ -15,6 +15,8 @@
 		backgroundColor?: string;
 	} = $props();
 	const showcaseReflectorSize = 64;
+	const { size } = useThrelte();
+	const isMobileViewport = $derived(size.current.width < 768);
 
 	const ReflectorWithShader = Reflector as typeof Reflector & {
 		ReflectorShader: {
@@ -64,6 +66,14 @@ base.rgb = reflectionBackgroundColor + ( base.rgb - reflectionBackgroundColor ) 
 		reflectorMaterial.uniforms.distortionStrength.value = distortionStrength;
 		reflectorMaterial.uniforms.reflectionBrightness.value = brightness;
 		reflectorMaterial.uniforms.reflectionBackgroundColor.value.set(backgroundColor);
+	});
+
+	$effect(() => {
+		const renderTarget = reflector.getRenderTarget();
+		const resolution = isMobileViewport ? 512 : 2048;
+
+		renderTarget.setSize(resolution, resolution);
+		renderTarget.samples = isMobileViewport ? 0 : 4;
 	});
 
 	useTask((delta) => {

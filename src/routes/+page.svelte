@@ -241,7 +241,12 @@
 			transform: translateX(-50%);
 		}
 		.start-button {
-			margin-top: 2.25rem;
+			margin-top: 4rem;
+		}
+		.transition-name {
+			max-width: calc(100vw - 2rem);
+			font-size: clamp(1.75rem, 8vw, 2.2rem);
+			white-space: nowrap;
 		}
 	}
 </style>

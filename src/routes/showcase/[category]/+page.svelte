@@ -9,7 +9,7 @@
 	let { data }: { data: { category: ShowcaseCategory } } = $props();
 	let showControlsHint = $state(false);
 	let isLoading = $state(true);
-	let pointerStart: { x: number; y: number } | undefined;
+	let pointerStart: { x: number; y: number; hintDismissDistance: number } | undefined;
 
 	const movementKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
 
@@ -38,14 +38,21 @@
 
 		const onPointerDown = (event: PointerEvent) => {
 			if (event.target instanceof HTMLCanvasElement) {
-				pointerStart = { x: event.clientX, y: event.clientY };
+				pointerStart = {
+					x: event.clientX,
+					y: event.clientY,
+					hintDismissDistance: event.pointerType === 'touch' ? 72 : 16
+				};
 			}
 		};
 
 		const onPointerMove = (event: PointerEvent) => {
 			if (!pointerStart) return;
 
-			if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 8) {
+			if (
+				Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) >
+				pointerStart.hintDismissDistance
+			) {
 				showControlsHint = false;
 				pointerStart = undefined;
 			}
@@ -85,7 +92,7 @@
 	{#if showControlsHint}
 		<p class="controls-hint">
 			<span class="desktop-controls">Use the arrow keys or drag to move</span>
-			<span class="mobile-controls">Drag up or down to move · sideways to turn</span>
+			<span class="mobile-controls">Drag to move</span>
 		</p>
 	{/if}
 
@@ -190,6 +197,10 @@
 		}
 	}
 	@media (max-width: 767px) {
+		.controls-hint {
+			top: max(4.5rem, env(safe-area-inset-top));
+			bottom: auto;
+		}
 		.category-hint {
 			display: none;
 		}

@@ -22,12 +22,14 @@
 	let dustDrift = $state(0);
 	let postersReady = $state(false);
 	let hasReportedReady = false;
-	const { renderer, scene } = useThrelte();
+	const { renderer, scene, dpr, size } = useThrelte();
 	const sceneBackground = new Color(backgroundColor);
+	const isMobileViewport = $derived(size.current.width < 768);
 
 	$effect(() => {
 		scene.background = sceneBackground;
 		renderer.setClearColor(sceneBackground, 1);
+		dpr.set(isMobileViewport ? 1.25 : 2);
 	});
 
 	$effect(() => {

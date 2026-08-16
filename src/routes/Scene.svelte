@@ -49,16 +49,16 @@
 	const responsiveStartPosition = $derived([
 		startPosition[0] + 0.18 * portraitAmount,
 		startPosition[1] + 0.06 * portraitAmount,
-		startPosition[2] + 1.45 * portraitAmount
+		startPosition[2] + 1.05 * portraitAmount
 	] as [number, number, number]);
 	const responsiveTargetPosition = $derived([
 		targetPosition[0],
-		targetPosition[1] + 0.04 * portraitAmount,
+		targetPosition[1] - 0.03 * portraitAmount,
 		targetPosition[2] + 0.5 * portraitAmount
 	] as [number, number, number]);
 	const responsiveStartRotation = $derived([
 		startRotation[0],
-		startRotation[1] + 0.05 * portraitAmount,
+		startRotation[1] - 0.02 * portraitAmount,
 		startRotation[2]
 	] as [number, number, number]);
 	const responsiveStartFov = $derived(startFov + 16 * portraitAmount);

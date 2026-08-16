@@ -144,7 +144,7 @@
 			);
 			dragMoveTarget = clamp(
 				dragInputWithDeadZone(
-					event.clientY - dragStartY,
+					touchDragging ? dragStartY - event.clientY : event.clientY - dragStartY,
 					verticalDragDeadZone,
 					verticalDragSensitivity
 				),
