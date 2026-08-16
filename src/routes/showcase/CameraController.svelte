@@ -47,6 +47,10 @@
 	const dragResponse = 14;
 	const trackpadSensitivity = 0.012;
 	const trackpadDecay = 9;
+	const idleDelay = 2;
+	const idleTurnSpeed = 0.09;
+	const outerFovIncrease = 18;
+	const fovSmoothness = 5;
 	let angularVelocity = 0;
 	let movementVelocity = 0;
 	let dragTurnInput = 0;
@@ -59,6 +63,8 @@
 	let touchDragging = false;
 	let dragStartX = 0;
 	let dragStartY = 0;
+	let secondsSinceInteraction = 0;
+	let hasMovedForward = false;
 
 	const turnSmoothness = 6;
 	const movementSmoothness = 6;
@@ -107,6 +113,10 @@
 		return Math.sign(offset) * (Math.abs(offset) - deadZone) * sensitivity;
 	};
 
+	const registerInteraction = () => {
+		secondsSinceInteraction = 0;
+	};
+
 	keyboard.on('keyup', (event) => {
 		KeyboardControls.forEach((KeyboardControlCombination) => {
 			if (KeyboardControlCombination.includes(event.key.toLocaleLowerCase())) {
@@ -125,6 +135,7 @@
 				return;
 
 			isDragging = true;
+			registerInteraction();
 			touchDragging = event.pointerType === 'touch';
 			dragStartX = event.clientX;
 			dragStartY = event.clientY;
@@ -133,6 +144,7 @@
 
 		const onPointerMove = (event: PointerEvent) => {
 			if (!isDragging) return;
+			registerInteraction();
 
 			const horizontalOffset = touchDragging
 				? event.clientX - dragStartX
@@ -164,6 +176,7 @@
 			if (orbitDebug.enabled || !(event.target instanceof HTMLCanvasElement)) return;
 
 			event.preventDefault();
+			registerInteraction();
 			trackpadTurnInput = clamp(
 				trackpadTurnInput - event.deltaX * trackpadSensitivity,
 				-1,
@@ -213,8 +226,13 @@
 					1
 				);
 			});
+			const keyboardIsMoving = turnDirection !== 0 || moveDirection !== 0;
+			if (keyboardIsMoving) registerInteraction();
+			else secondsSinceInteraction += delta;
+
 			turnDirection = clamp(turnDirection + dragTurnInput + trackpadTurnInput, -1, 1);
 			moveDirection = clamp(moveDirection + dragMoveInput + trackpadMoveInput, -1, 1);
+			if (moveDirection > 0) hasMovedForward = true;
 			dragTurnInput = damp(dragTurnInput, dragTurnTarget, dragResponse, delta);
 			dragMoveInput = damp(dragMoveInput, dragMoveTarget, dragResponse, delta);
 			trackpadTurnInput = damp(trackpadTurnInput, 0, trackpadDecay, delta);
@@ -233,9 +251,20 @@
 			const turnSpeed =
 				radiusAwareTurnSpeed * adaptiveTurnBlend +
 				outerRingTurnSpeed * (1 - adaptiveTurnBlend);
-			const targetAngularVelocity = turnDirection * turnSpeed;
+			const isIdle =
+				!orbitDebug.enabled && !hasMovedForward && secondsSinceInteraction >= idleDelay;
+			const targetAngularVelocity = isIdle ? idleTurnSpeed : turnDirection * turnSpeed;
 			angularVelocity = damp(angularVelocity, targetAngularVelocity, turnSmoothness, delta);
 			pivot.rotation.y -= angularVelocity * delta;
+			if (viewerCamera) {
+				viewerCamera.fov = damp(
+					viewerCamera.fov,
+					responsiveFov + distanceProgress * outerFovIncrease,
+					fovSmoothness,
+					delta
+				);
+				viewerCamera.updateProjectionMatrix();
+			}
 
 			const remainingDistance =
 				moveDirection > 0
