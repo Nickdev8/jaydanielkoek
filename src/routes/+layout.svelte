@@ -6,6 +6,55 @@
 
 	let { children } = $props();
 
+	const metadata = $derived.by(() => {
+		const pathname = page.url.pathname;
+		const category = pathname.match(/^\/showcase\/(nature|urban)$/)?.[1];
+		const isLensSelector = pathname.startsWith('/lenses/');
+		const isModelCredits = pathname === '/model-credits';
+
+		if (category) {
+			const label = category[0].toUpperCase() + category.slice(1);
+			return {
+				title: `Jayden Daniel Koek — ${label} photography`,
+				description: `Explore ${label.toLowerCase()} photography by Jayden Daniel Koek in an interactive 3D gallery.`,
+				indexable: true
+			};
+		}
+
+		if (pathname === '/contact') {
+			return {
+				title: 'Jayden Daniel Koek — Contact',
+				description: 'Contact photographer Jayden Daniel Koek for photography enquiries.',
+				indexable: true
+			};
+		}
+
+		if (isLensSelector) {
+			return {
+				title: 'Jayden Daniel Koek — Choose a category',
+				description: 'Choose a photography category in Jayden Daniel Koek’s interactive portfolio.',
+				indexable: false
+			};
+		}
+
+		if (isModelCredits) {
+			return {
+				title: 'Jayden Daniel Koek — Model credits',
+				description: '3D model credits for Jayden Daniel Koek’s photography portfolio.',
+				indexable: false
+			};
+		}
+
+		return {
+			title: 'Jayden Daniel Koek — Photographer',
+			description:
+				'Photography portfolio of Jayden Daniel Koek. Explore urban and nature photographs in an interactive 3D showcase.',
+			indexable: true
+		};
+	});
+	const canonicalUrl = $derived(new URL(page.url.pathname, page.url.origin).toString());
+	const previewImage = $derived(new URL('/readme-homepage.png', page.url.origin).toString());
+
 	onNavigate((navigation) => {
 		if (!document.startViewTransition) return;
 
@@ -30,7 +79,20 @@
 </script>
 
 <svelte:head>
-	<title>Jayden Daniel Koek</title>
+	<title>{metadata.title}</title>
+	<meta name="description" content={metadata.description} />
+	<meta name="robots" content={metadata.indexable ? 'index, follow' : 'noindex, follow'} />
+	<link rel="canonical" href={canonicalUrl} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Jayden Daniel Koek" />
+	<meta property="og:title" content={metadata.title} />
+	<meta property="og:description" content={metadata.description} />
+	<meta property="og:url" content={canonicalUrl} />
+	<meta property="og:image" content={previewImage} />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={metadata.title} />
+	<meta name="twitter:description" content={metadata.description} />
+	<meta name="twitter:image" content={previewImage} />
 </svelte:head>
 
 {@render children()}

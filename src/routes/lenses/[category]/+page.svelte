@@ -144,10 +144,6 @@
 	});
 </script>
 
-<svelte:head>
-	<meta name="description" content="Select a photography category through its camera lens." />
-</svelte:head>
-
 <main class="lens-selector-page">
 	<Canvas>
 		{#key data.category.id}

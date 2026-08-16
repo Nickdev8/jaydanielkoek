@@ -75,11 +75,15 @@
 	});
 </script>
 
-<svelte:head>
-	<meta name="description" content={`${data.category.label} photography showcase.`} />
-</svelte:head>
-
 <main class="showcase-page">
+	<section class="screen-reader-context">
+		<h1>{data.category.label} photography by Jayden Daniel Koek</h1>
+		<p>
+			An interactive 3D gallery of Jayden Daniel Koek’s {data.category.label.toLowerCase()} photography.
+		</p>
+		<a href="/contact">Contact Jayden Daniel Koek</a>
+	</section>
+
 	<Canvas>
 		<Scene category={data.category} {onready} />
 	</Canvas>
@@ -119,6 +123,17 @@
 	main :global(canvas) {
 		touch-action: none;
 		user-select: none;
+	}
+	.screen-reader-context {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 	main::after {
 		content: '';
