@@ -15,7 +15,7 @@
 		if (category) {
 			const label = category[0].toUpperCase() + category.slice(1);
 			return {
-				title: `Jayden Daniel Koek — ${label} photography`,
+				title: `Jayden Daniel Koek, ${label} photography`,
 				description: `Explore ${label.toLowerCase()} photography by Jayden Daniel Koek in an interactive 3D gallery.`,
 				indexable: true
 			};
@@ -23,7 +23,7 @@
 
 		if (pathname === '/contact') {
 			return {
-				title: 'Jayden Daniel Koek — Contact',
+				title: 'Jayden Daniel Koek, Contact',
 				description: 'Contact photographer Jayden Daniel Koek for photography enquiries.',
 				indexable: true
 			};
@@ -31,7 +31,7 @@
 
 		if (isLensSelector) {
 			return {
-				title: 'Jayden Daniel Koek — Choose a category',
+				title: 'Jayden Daniel Koek, Choose a category',
 				description: 'Choose a photography category in Jayden Daniel Koek’s interactive portfolio.',
 				indexable: false
 			};
@@ -39,14 +39,14 @@
 
 		if (isModelCredits) {
 			return {
-				title: 'Jayden Daniel Koek — Model credits',
+				title: 'Jayden Daniel Koek, Model credits',
 				description: '3D model credits for Jayden Daniel Koek’s photography portfolio.',
 				indexable: false
 			};
 		}
 
 		return {
-			title: 'Jayden Daniel Koek — Photographer',
+			title: 'Jayden Daniel Koek, Photographer',
 			description:
 				'Photography portfolio of Jayden Daniel Koek. Explore urban and nature photographs in an interactive 3D showcase.',
 			indexable: true
