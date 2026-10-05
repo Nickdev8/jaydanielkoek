@@ -1,26 +1,51 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
 	import { onMount } from 'svelte';
 	import type { ShowcaseCategory } from '$lib/showcase/types';
+	import { getSiteUi } from '$lib/site/ui';
 	import Scene from '../Scene.svelte';
+	import Minimap from '../Minimap.svelte';
 	import SceneLoadingVeil from '$lib/components/SceneLoadingVeil.svelte';
 
 	let { data }: { data: { category: ShowcaseCategory } } = $props();
+	const ui = getSiteUi();
+	const controlsEnabled = $derived(!ui.menuOpen);
 	let showControlsHint = $state(false);
 	let isLoading = $state(true);
+	let viewMode = $state<'walk' | 'grid'>('walk');
+	let cameraPosition = $state<[number, number, number]>([0, 0, 0]);
+	let cameraRotation = $state(0);
 	let pointerStart: { x: number; y: number; hintDismissDistance: number } | undefined;
-	let joystickElement = $state.raw<HTMLDivElement>();
-	let joystickTurn = $state(0);
-	let joystickMove = $state(0);
-	let joystickThumbX = $state(0);
-	let joystickThumbY = $state(0);
-	let joystickPointerId = $state<number>();
 
-	const movementKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
-	const joystickRadius = 38;
+	const movementKeys = new Set([
+		'ArrowUp',
+		'ArrowDown',
+		'ArrowLeft',
+		'ArrowRight',
+		'KeyW',
+		'KeyA',
+		'KeyS',
+		'KeyD'
+	]);
+	const posterGroups = $derived.by(() => {
+		const groups = new Map<number, typeof data.category.posters>();
+		for (const poster of data.category.posters) {
+			const posters = groups.get(poster.step) ?? [];
+			posters.push(poster);
+			groups.set(poster.step, posters);
+		}
+		return Array.from(groups, ([step, posters]) => ({
+			step,
+			posters: posters.toSorted((a, b) => a.angle - b.angle)
+		})).toSorted((a, b) => a.step - b.step);
+	});
+	const photoName = (image: string) =>
+		image
+			.split('/')
+			.at(-1)
+			?.replace(/\.[^.]+$/, '')
+			.replaceAll(/[-_]+/g, ' ') ?? 'Foto';
 
-	const openLensSelector = () => goto(`/lenses/${data.category.id}`);
 	const onready = () => {
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
@@ -29,62 +54,21 @@
 		});
 	};
 
-	const updateJoystick = (event: PointerEvent) => {
-		if (!joystickElement) return;
-
-		const bounds = joystickElement.getBoundingClientRect();
-		const offsetX = event.clientX - (bounds.left + bounds.width / 2);
-		const offsetY = event.clientY - (bounds.top + bounds.height / 2);
-		const distance = Math.hypot(offsetX, offsetY);
-		const scale = distance > joystickRadius ? joystickRadius / distance : 1;
-
-		joystickThumbX = offsetX * scale;
-		joystickThumbY = offsetY * scale;
-		joystickTurn = joystickThumbX / joystickRadius;
-		joystickMove = -joystickThumbY / joystickRadius;
-	};
-
-	const startJoystick = (event: PointerEvent) => {
-		if (event.pointerType === 'mouse') return;
-
-		event.preventDefault();
-		joystickPointerId = event.pointerId;
-		joystickElement?.setPointerCapture(event.pointerId);
-		updateJoystick(event);
-		showControlsHint = false;
-	};
-
-	const moveJoystick = (event: PointerEvent) => {
-		if (event.pointerId !== joystickPointerId) return;
-
-		updateJoystick(event);
-	};
-
-	const stopJoystick = (event: PointerEvent) => {
-		if (event.pointerId !== joystickPointerId) return;
-
-		joystickPointerId = undefined;
-		joystickTurn = 0;
-		joystickMove = 0;
-		joystickThumbX = 0;
-		joystickThumbY = 0;
-	};
+	$effect(() => {
+		if (!controlsEnabled) pointerStart = undefined;
+	});
 
 	onMount(() => {
-		showControlsHint = sessionStorage.getItem('showcase-controls-hint') === 'true';
-		sessionStorage.removeItem('showcase-controls-hint');
+		showControlsHint = sessionStorage.getItem('showcase-controls-seen') !== 'true';
+		sessionStorage.setItem('showcase-controls-seen', 'true');
 
 		const onKeyDown = (event: KeyboardEvent) => {
+			if (!controlsEnabled) return;
 			if (movementKeys.has(event.code)) showControlsHint = false;
-
-			if (event.code !== 'Space' || event.repeat) return;
-			if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLAnchorElement) return;
-
-			event.preventDefault();
-			openLensSelector();
 		};
 
 		const onPointerDown = (event: PointerEvent) => {
+			if (!controlsEnabled) return;
 			if (event.target instanceof HTMLCanvasElement) {
 				pointerStart = {
 					x: event.clientX,
@@ -123,49 +107,61 @@
 	});
 </script>
 
-<main class="showcase-page">
-	<section class="screen-reader-context">
-		<h1>{data.category.label} photography by Jayden Daniel Koek</h1>
-		<p>
-			An interactive 3D gallery of Jayden Daniel Koek’s {data.category.label.toLowerCase()} photography.
-		</p>
-		<a href="/contact">Contact Jayden Daniel Koek</a>
-	</section>
+<main class="showcase-page" class:photo-grid-view={viewMode === 'grid'}>
+	{#if viewMode === 'walk'}
+		<section class="screen-reader-context">
+			<h1>Fotografie van Jayden Daniel Koek</h1>
+			<p>Een interactieve galerie met natuur- en stadsfotografie van Jayden Daniel Koek.</p>
+		</section>
 
-	<Canvas>
-		<Scene category={data.category} {onready} {joystickTurn} {joystickMove} />
-	</Canvas>
+		<button class="view-switch" type="button" onclick={() => (viewMode = 'grid')}>
+			Galerie in foto's
+		</button>
 
-	<button class="change-category" onclick={openLensSelector}>
-		<span>Change category</span>
-		<kbd>Space</kbd>
-	</button>
+		<Canvas>
+			<Scene
+				category={data.category}
+				{onready}
+				{controlsEnabled}
+				bind:cameraPosition
+				bind:cameraRotation
+			/>
+		</Canvas>
 
-	<div
-		class:active={joystickPointerId !== undefined}
-		class="joystick"
-		bind:this={joystickElement}
-		role="application"
-		aria-label="Move through the showcase"
-		onpointerdown={startJoystick}
-		onpointermove={moveJoystick}
-		onpointerup={stopJoystick}
-		onpointercancel={stopJoystick}
-	>
-		<div
-			class="joystick-thumb"
-			style:transform={`translate(${joystickThumbX}px, ${joystickThumbY}px)`}
-		></div>
-	</div>
+		{#if !isLoading}
+			<Minimap posters={data.category.posters} {cameraPosition} {cameraRotation} />
+		{/if}
 
-	{#if showControlsHint}
-		<p class="controls-hint">
-			<span class="desktop-controls">Use the arrow keys or drag to move</span>
-			<span class="mobile-controls">Use the joystick or drag to move</span>
-		</p>
+		{#if showControlsHint}
+			<p class="controls-hint">
+				<span class="desktop-controls">Gebruik de pijltjestoetsen of sleep om te bewegen</span>
+				<span class="mobile-controls">Sleep om te bewegen</span>
+			</p>
+		{/if}
+
+		<SceneLoadingVeil loaded={!isLoading} />
+	{:else}
+		<section class="photo-gallery page-shell" aria-labelledby="photo-gallery-title">
+			<header class="gallery-toolbar">
+				<h1 id="photo-gallery-title">Fotografie</h1>
+				<button class="view-switch" type="button" onclick={() => (viewMode = 'walk')}>
+					Terug naar de 3D-galerie
+				</button>
+			</header>
+			{#each posterGroups as group (group.step)}
+				<section class="step-group" aria-labelledby={`step-${group.step}`}>
+					<h2 id={`step-${group.step}`}>Stap {group.step}</h2>
+					<div class="poster-grid">
+						{#each group.posters as poster (poster.image)}
+							<figure>
+								<img src={poster.image} alt={`Foto: ${photoName(poster.image)}`} loading="lazy" />
+							</figure>
+						{/each}
+					</div>
+				</section>
+			{/each}
+		</section>
 	{/if}
-
-	<SceneLoadingVeil loaded={!isLoading} />
 </main>
 
 <style>
@@ -184,6 +180,14 @@
 		height: 100svh;
 		overflow: hidden;
 		background: #080c15;
+	}
+	main.photo-grid-view {
+		width: 100%;
+		height: auto;
+		min-height: 100svh;
+		overflow: visible;
+		padding-block: calc(104px + 24px) clamp(40px, 8vw, 96px);
+		color: var(--paper);
 	}
 	main :global(canvas) {
 		touch-action: none;
@@ -213,6 +217,59 @@
 			rgba(0, 0, 0, 0.9) 100%
 		);
 	}
+	main.photo-grid-view::after {
+		display: none;
+	}
+	.view-switch {
+		position: absolute;
+		top: max(24px, env(safe-area-inset-top));
+		left: max(24px, env(safe-area-inset-left));
+		z-index: 3;
+		padding: 10px 0;
+		border: 0;
+		background: transparent;
+		color: var(--paper);
+		font: 400 0.85rem/1.4 var(--font-body);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+		cursor: pointer;
+	}
+	.gallery-toolbar {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 24px;
+		margin-bottom: 40px;
+	}
+	.gallery-toolbar h1 {
+		margin: 0;
+		font: 400 clamp(40px, 6vw, 68px)/1.05 var(--font-display);
+	}
+	.gallery-toolbar .view-switch {
+		position: static;
+		flex: 0 0 auto;
+	}
+	.step-group {
+		margin-top: 36px;
+	}
+	.step-group h2 {
+		margin: 0 0 18px;
+		font: 400 clamp(24px, 3vw, 34px)/1.2 var(--font-display);
+	}
+	.poster-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+		align-items: start;
+		gap: clamp(16px, 2.2vw, 30px);
+	}
+	.poster-grid figure {
+		margin: 0;
+	}
+	.poster-grid img {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
 	.controls-hint {
 		position: absolute;
 		z-index: 1;
@@ -220,115 +277,41 @@
 		left: 50%;
 		margin: 0;
 		color: rgba(245, 247, 242, 0.72);
-		font: 300 clamp(0.75rem, 1vw, 0.9rem) system-ui, sans-serif;
+		font: 400 clamp(0.75rem, 1vw, 0.9rem) var(--font-body);
 		letter-spacing: 0.03em;
 		transform: translateX(-50%);
+		width: max-content;
+		max-width: calc(100% - 48px);
+		text-align: center;
 		transition: opacity 180ms ease;
 	}
 	.mobile-controls {
 		display: none;
 	}
-	.change-category {
-		position: absolute;
-		z-index: 1;
-		bottom: clamp(1.5rem, 4vw, 3rem);
-		left: clamp(1.25rem, 3vw, 3rem);
-		display: inline-flex;
-		align-items: center;
-		gap: 0.8rem;
-		padding: 0.75rem 0.9rem;
-		border: 1px solid rgba(245, 247, 242, 0.8);
-		border-radius: 8px;
-		background: rgba(8, 12, 21, 0.5);
-		color: #f5f7f2;
-		font: 0.95rem/1 system-ui, sans-serif;
-		cursor: pointer;
-		margin: 0;
-		transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
-	}
-	.change-category kbd {
-		padding: 0.2rem 0.32rem;
-		border: 1px solid rgba(245, 247, 242, 0.36);
-		border-radius: 3px;
-		color: rgba(245, 247, 242, 0.72);
-		font: 0.68rem/1 system-ui, sans-serif;
-	}
-	.change-category:hover,
-	.change-category:focus-visible {
-		border-color: #fff;
-		background: #f5f7f2;
-		color: #080c15;
-	}
-	.change-category:hover kbd,
-	.change-category:focus-visible kbd {
-		border-color: rgba(8, 12, 21, 0.4);
-		color: inherit;
-	}
-	.change-category:focus-visible {
-		outline: 2px solid #fff;
-		outline-offset: 4px;
-	}
-	.joystick {
-		display: none;
-	}
 	@media (max-width: 767px) {
+		main.photo-grid-view {
+			padding-top: calc(88px + 24px + env(safe-area-inset-top));
+		}
+		.gallery-toolbar {
+			align-items: flex-start;
+			margin-bottom: 28px;
+		}
+		.gallery-toolbar .view-switch {
+			max-width: 12ch;
+			text-align: right;
+		}
+		.step-group {
+			margin-top: 28px;
+		}
 		.controls-hint {
 			top: max(4.5rem, env(safe-area-inset-top));
 			bottom: auto;
-		}
-		.change-category {
-			left: max(1.25rem, env(safe-area-inset-left));
-			bottom: max(1.75rem, env(safe-area-inset-bottom));
-		}
-		.change-category kbd {
-			display: none;
 		}
 		.desktop-controls {
 			display: none;
 		}
 		.mobile-controls {
 			display: inline;
-		}
-		.joystick {
-			position: absolute;
-			z-index: 2;
-			right: max(1.25rem, env(safe-area-inset-right));
-			bottom: max(1.25rem, env(safe-area-inset-bottom));
-			display: grid;
-			width: 6.5rem;
-			height: 6.5rem;
-			place-items: center;
-			border: 1px solid rgba(245, 247, 242, 0.42);
-			border-radius: 50%;
-			background: rgba(8, 12, 21, 0.28);
-			touch-action: none;
-			user-select: none;
-		}
-		.joystick::before,
-		.joystick::after {
-			position: absolute;
-			background: rgba(245, 247, 242, 0.2);
-			content: '';
-		}
-		.joystick::before {
-			width: 1px;
-			height: 1.5rem;
-		}
-		.joystick::after {
-			width: 1.5rem;
-			height: 1px;
-		}
-		.joystick-thumb {
-			width: 2.7rem;
-			height: 2.7rem;
-			border: 1px solid rgba(245, 247, 242, 0.82);
-			border-radius: 50%;
-			background: rgba(245, 247, 242, 0.12);
-			transition: transform 90ms ease-out;
-		}
-		.joystick.active .joystick-thumb {
-			background: rgba(245, 247, 242, 0.24);
-			transition: none;
 		}
 	}
 </style>

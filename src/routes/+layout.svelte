@@ -1,64 +1,54 @@
 <script lang="ts">
 	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import { orbitDebug } from '$lib/debug/orbit.svelte';
+	import SiteHeader from '$lib/components/SiteHeader.svelte';
+	import { siteUiKey, type SiteUi } from '$lib/site/ui';
+	import { siteContent } from '$lib/site/content';
+	import '$lib/site/site.css';
 
 	let { children } = $props();
+	const ui = $state<SiteUi>({ menuOpen: false });
+	setContext(siteUiKey, ui);
 
 	const metadata = $derived.by(() => {
-		const pathname = page.url.pathname;
-		const category = pathname.match(/^\/showcase\/(nature|urban)$/)?.[1];
-		const isLensSelector = pathname.startsWith('/lenses/');
-		const isModelCredits = pathname === '/model-credits';
-
-		if (category) {
-			const label = category[0].toUpperCase() + category.slice(1);
+		const pathname: string = page.url.pathname;
+		if (pathname.startsWith('/showcase')) {
 			return {
-				title: `Jayden Daniel Koek, ${label} photography`,
-				description: `Explore ${label.toLowerCase()} photography by Jayden Daniel Koek in an interactive 3D gallery.`,
-				indexable: true
+				title: 'Fotografie | Jayden Daniel Koek',
+				description:
+					'Bekijk de natuur- en stadsfotografie van Jayden Daniel Koek in een interactieve galerie.'
 			};
 		}
-
+		if (pathname === '/over') {
+			return {
+				title: 'Over | Jayden Daniel Koek',
+				description: 'Over Jayden Daniel Koek en zijn fotografie.'
+			};
+		}
 		if (pathname === '/contact') {
 			return {
-				title: 'Jayden Daniel Koek, Contact',
-				description: 'Contact photographer Jayden Daniel Koek for photography enquiries.',
-				indexable: true
+				title: 'Contact | Jayden Daniel Koek',
+				description: 'Een vraag over fotografie? Neem contact op met Jayden Daniel Koek.'
 			};
 		}
-
-		if (isLensSelector) {
-			return {
-				title: 'Jayden Daniel Koek, Choose a category',
-				description: 'Choose a photography category in Jayden Daniel Koek’s interactive portfolio.',
-				indexable: false
-			};
-		}
-
-		if (isModelCredits) {
-			return {
-				title: 'Jayden Daniel Koek, Model credits',
-				description: '3D model credits for Jayden Daniel Koek’s photography portfolio.',
-				indexable: false
-			};
-		}
-
 		return {
-			title: 'Jayden Daniel Koek, Photographer',
+			title: 'Jayden Daniel Koek | Fotograaf',
 			description:
-				'Photography portfolio of Jayden Daniel Koek. Explore urban and nature photographs in an interactive 3D showcase.',
-			indexable: true
+				"Natuur en het leven in de stad. Bekijk een selectie foto's van Jayden Daniel Koek."
 		};
 	});
 	const canonicalUrl = $derived(new URL(page.url.pathname, page.url.origin).toString());
-	const previewImage = $derived(new URL('/readme-homepage.png', page.url.origin).toString());
+	const previewImage = $derived(new URL(siteContent.heroImage.src, page.url.origin).toString());
 
 	onNavigate((navigation) => {
-		if (!document.startViewTransition) return;
-
-		return new Promise((resolve) => {
+		if (
+			!document.startViewTransition ||
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		)
+			return;
+		return new Promise<void>((resolve) => {
 			document.startViewTransition(async () => {
 				resolve();
 				await navigation.complete;
@@ -68,11 +58,10 @@
 
 	onMount(() => {
 		const toggleOrbit = (event: KeyboardEvent) => {
-			if (event.repeat || (event.code !== 'Digit0' && event.code !== 'Numpad0')) return;
-
+			if (ui.menuOpen || event.repeat || (event.code !== 'Digit0' && event.code !== 'Numpad0'))
+				return;
 			orbitDebug.enabled = !orbitDebug.enabled;
 		};
-
 		window.addEventListener('keydown', toggleOrbit);
 		return () => window.removeEventListener('keydown', toggleOrbit);
 	});
@@ -81,117 +70,61 @@
 <svelte:head>
 	<title>{metadata.title}</title>
 	<meta name="description" content={metadata.description} />
-	<meta name="robots" content={metadata.indexable ? 'index, follow' : 'noindex, follow'} />
 	<link rel="canonical" href={canonicalUrl} />
+	<link
+		rel="preload"
+		href="/fonts/baskervville-regular.woff2"
+		as="font"
+		type="font/woff2"
+		crossorigin="anonymous"
+	/>
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="Jayden Daniel Koek" />
+	<meta property="og:site_name" content={siteContent.name} />
+	<meta property="og:locale" content="nl_NL" />
 	<meta property="og:title" content={metadata.title} />
 	<meta property="og:description" content={metadata.description} />
 	<meta property="og:url" content={canonicalUrl} />
 	<meta property="og:image" content={previewImage} />
+	<meta property="og:image:alt" content={siteContent.heroImage.alt} />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content={metadata.title} />
 	<meta name="twitter:description" content={metadata.description} />
 	<meta name="twitter:image" content={previewImage} />
 </svelte:head>
 
-{@render children()}
-
-<nav class="utility-nav" aria-label="Utility navigation">
-	{#if page.url.pathname !== '/contact'}
-		<a class="utility-link" href="/contact" aria-label="Contact">
-			<svg viewBox="0 0 24 24" aria-hidden="true">
-				<rect x="3" y="5" width="18" height="14" rx="1" />
-				<path d="m3 6 9 7 9-7" />
-			</svg>
-			<span>Contact</span>
-		</a>
-	{/if}
-
-	{#if page.url.pathname !== '/'}
-		<a class="utility-link" href="/" aria-label="Home">
-			<svg viewBox="0 0 24 24" aria-hidden="true">
-				<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z" />
-				<path d="M9 21v-6h6v6" />
-			</svg>
-			<span>Home</span>
-		</a>
-	{/if}
-</nav>
+<a class="skip-link" href="#main-content">Naar de inhoud</a>
+<SiteHeader />
+<div id="main-content" tabindex="-1">
+	{@render children()}
+</div>
 
 <style>
-	:global(html) {
-		background: #000;
+	.skip-link {
+		position: fixed;
+		top: -100px;
+		left: 16px;
+		z-index: 16777273;
+		padding: 12px 16px;
+		color: var(--paper);
+		background: var(--ink);
 	}
-
-	:global(::view-transition-image-pair(root)) {
-		isolation: isolate;
+	.skip-link:focus {
+		top: 16px;
 	}
-
 	:global(::view-transition-old(root)) {
-		animation: fade-to-black 350ms ease-in both;
-		mix-blend-mode: normal;
+		animation: fade-out 180ms ease both;
 	}
-
 	:global(::view-transition-new(root)) {
-		animation: fade-from-black 500ms 350ms ease-out both;
-		mix-blend-mode: normal;
+		animation: fade-in 180ms ease both;
 	}
-
-	@keyframes fade-to-black {
+	@keyframes fade-out {
 		to {
 			opacity: 0;
 		}
 	}
-
-	@keyframes fade-from-black {
+	@keyframes fade-in {
 		from {
 			opacity: 0;
 		}
-		to {
-			opacity: 1;
-		}
 	}
-
-	@media (prefers-reduced-motion: reduce) {
-		:global(::view-transition-old(root)),
-		:global(::view-transition-new(root)) {
-			animation: none;
-		}
-	}
-
-	.utility-nav {
-		position: fixed;
-		top: max(1rem, env(safe-area-inset-top));
-		right: max(1rem, env(safe-area-inset-right));
-		z-index: 16777272;
-		display: flex;
-		gap: 0.45rem;
-		transition: opacity 180ms ease;
-	}
-
-	.utility-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		color: #fff;
-		font: 0.75rem/1 system-ui, sans-serif;
-		mix-blend-mode: difference;
-	}
-
-	.utility-link svg {
-		width: 1.1rem;
-		height: 1.1rem;
-		fill: none;
-		stroke: currentColor;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		stroke-width: 1.35;
-	}
-
-	.utility-link:focus-visible {
-		outline: 1px solid currentColor;
-		outline-offset: 4px;
-	}
-
 </style>

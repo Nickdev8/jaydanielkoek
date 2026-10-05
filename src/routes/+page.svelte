@@ -1,221 +1,216 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { Canvas } from '@threlte/core';
-	import { useProgress } from '@threlte/extras';
-	import { onMount } from 'svelte';
-	import SceneLoadingVeil from '$lib/components/SceneLoadingVeil.svelte';
-	import Scene from './Scene.svelte';
+	import PhotoViewer from '$lib/components/PhotoViewer.svelte';
+	import SiteFooter from '$lib/components/SiteFooter.svelte';
+	import InlineCamera from '$lib/components/InlineCamera.svelte';
+	import { siteContent } from '$lib/site/content';
 
-	let started = $state(false);
-	let isLoading = $state(true);
-	let showTransitionName = $state(false);
-	let isLeaving = $state(false);
-	let loadProgress = $state(0);
-	const { progress } = useProgress();
+	let selectedIndex = $state<number | null>(null);
+	let opener = $state<HTMLElement | null>(null);
 
-	onMount(() => {
-		return progress.subscribe((value) => {
-			loadProgress = value;
-		});
-	});
-
-	function start() {
-		started = true;
-	}
-
-	const wait = (duration: number) => new Promise<void>((resolve) => setTimeout(resolve, duration));
-
-	async function onarrive() {
-		if (isLeaving) return;
-
-		showTransitionName = true;
-		await wait(900);
-		isLeaving = true;
-		await wait(600);
-		sessionStorage.setItem('showcase-controls-hint', 'true');
-		goto('/showcase/nature');
-	}
-
-	function onready() {
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				isLoading = false;
-			});
-		});
+	function openPhoto(index: number, event: MouseEvent) {
+		opener = event.currentTarget as HTMLElement;
+		selectedIndex = index;
 	}
 </script>
 
 <main class="home-page">
-	<Canvas>
-		<Scene {started} {onarrive} {onready} />
-	</Canvas>
-
-	<section class:leaving={started} class="intro" aria-label="Jayden Daniel Koek">
-		<h1><span>Jayden</span><span>Daniel Koek</span></h1>
-		<button class="start-button" onclick={start} disabled={started}>Enter showcase</button>
+	<section class="hero" aria-labelledby="home-title">
+		<img
+			class="hero-image"
+			src={siteContent.heroImage.src}
+			alt={siteContent.heroImage.alt}
+			fetchpriority="high"
+		/>
+		<div class="hero-shade"></div>
+		<div class="hero-copy">
+			<h1 id="home-title">Jayden<br />Daniel Koek</h1>
+			<a class="hero-link" href="/showcase/all">Bekijk de fotografie</a>
+		</div>
 	</section>
 
-	<p class:leaving={started} class="credit">
-		<a href="https://nickesselman.nl">Made by Nick Esselman</a>
-		<br>
-		<a href="model-credits">Model Credits</a>
-		<br>
-		<span class:leaving={started} class="copyright">© 2026 Jayden Daniel Koek</span>
-	</p>
+	<section class="intro page-shell">
+		<div class="intro-copy">
+			<p>{siteContent.bio}</p>
+			<a class="text-link" href="/over">Over mij</a>
+		</div>
+		<InlineCamera />
+	</section>
 
-	{#if showTransitionName}
-		<p class="transition-name">Jayden Daniel Koek</p>
-	{/if}
-
-	<SceneLoadingVeil
-		loaded={!isLoading}
-		leaving={isLeaving}
-		spinner={false}
-		progress={isLoading ? Math.max(3, loadProgress * 100) : 100}
-		duration={700}
-	/>
+	<section class="selected page-shell" aria-label="Een selectie foto's">
+		<div class="photo-grid">
+			{#each siteContent.featured as photo, index}
+				<button
+					class="photo-button"
+					type="button"
+					aria-label={`Bekijk foto: ${photo.alt}`}
+					onclick={(event) => openPhoto(index, event)}
+				>
+					<img
+						src={photo.src}
+						alt={photo.alt}
+						width={photo.width}
+						height={photo.height}
+						loading="lazy"
+					/>
+					<span>{photo.caption}</span>
+				</button>
+			{/each}
+		</div>
+		<a class="all-photos text-link" href="/showcase/all">Bekijk alle fotografie</a>
+	</section>
+	<SiteFooter />
 </main>
 
+<PhotoViewer photos={siteContent.featured} bind:selectedIndex bind:opener />
+
 <style>
-	:global(*) {
-		box-sizing: border-box;
+	.home-page {
+		background: var(--paper);
+		color: var(--ink);
 	}
-	:global(html),
-	:global(body) {
-		margin: 0;
-		min-height: 100%;
-		background: #111;
-	}
-	:global(html:has(.home-page)),
-	:global(body:has(.home-page)) {
-		background: #000;
-	}
-	main {
+	.hero {
 		position: relative;
-		width: 100vw;
-		height: 100svh;
-		overflow-x: hidden;
-		overflow-y: hidden;
-		background: #000;
+		min-height: 100svh;
+		overflow: hidden;
+		background: #24322d;
+		color: white;
 	}
-	main::after {
-		content: '';
+	.hero-image,
+	.hero-shade {
 		position: absolute;
 		inset: 0;
-		z-index: 5;
-		pointer-events: none;
-		background: radial-gradient(
-			ellipse at center,
-			transparent 26%,
-			rgba(0, 0, 0, 0.2) 48%,
-			rgba(0, 0, 0, 0.6) 74%,
-			rgba(0, 0, 0, 0.9) 100%
-		);
+		width: 100%;
+		height: 100%;
 	}
-	.intro {
+	.hero-image {
+		object-fit: cover;
+		object-position: center;
+	}
+	.hero-shade {
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 28%),
+			linear-gradient(90deg, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.08) 72%),
+			linear-gradient(0deg, rgba(0, 0, 0, 0.24), transparent 58%);
+	}
+	.hero-copy {
 		position: absolute;
-		z-index: 10;
-		top: clamp(1.75rem, 6vw, 5rem);
-		left: clamp(1.5rem, 5vw, 5rem);
-		color: #f5f7f2;
-		transition: opacity 180ms ease;
-	}
-	.intro.leaving,
-	.credit.leaving,
-	.copyright.leaving {
-		pointer-events: none;
-		opacity: 0;
-	}
-	:global(main:has(.intro.leaving) ~ .utility-nav) {
-		pointer-events: none;
-		opacity: 0;
+		z-index: 1;
+		left: clamp(2rem, 9vw, 9rem);
+		top: 55%;
+		transform: translateY(-30%);
+		animation: hero-copy-in 200ms ease both;
 	}
 	h1 {
 		margin: 0;
-		font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
-		font-size: clamp(3rem, 6.8vw, 7rem);
+		font-family: var(--font-display);
 		font-weight: 400;
-		letter-spacing: -0.07em;
-		line-height: 0.78;
+		font-size: clamp(4.5rem, 8vw, 8rem);
+		letter-spacing: -0.055em;
+		line-height: 1.05;
 	}
-	h1 span {
+	.hero-link {
+		display: inline-block;
+		margin-top: clamp(2rem, 4vw, 3.5rem);
+		color: white;
+		font-size: clamp(1rem, 1.35vw, 1.2rem);
+		text-underline-offset: 0.28em;
+		transition: opacity 200ms ease;
+	}
+	.hero-link:hover {
+		opacity: 0.72;
+	}
+	.intro {
+		display: grid;
+		grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+		align-items: center;
+		gap: clamp(32px, 6vw, 96px);
+		padding-top: clamp(5rem, 10vw, 9rem);
+		padding-bottom: clamp(5rem, 9vw, 8rem);
+	}
+	.intro p {
+		max-width: 760px;
+		margin: 0 0 1.5rem;
+		font-family: var(--font-display);
+		font-size: clamp(2rem, 3.3vw, 3.6rem);
+		line-height: 1.12;
+	}
+	.selected {
+		padding-bottom: clamp(5rem, 10vw, 9rem);
+	}
+	.all-photos {
+		display: inline-block;
+		margin-top: clamp(3rem, 6vw, 5rem);
+	}
+	.photo-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 4vw, 4rem);
+		align-items: start;
+	}
+	.photo-button {
 		display: block;
-	}
-	.start-button {
-		margin-top: clamp(2rem, 5vw, 4.5rem);
-		padding: 0.72rem 1.25rem 0.78rem;
-		border: 1px solid rgba(255, 255, 255, 0.9);
-		border-radius: 999px;
+		width: 100%;
+		padding: 0;
+		border: 0;
 		background: transparent;
 		color: inherit;
-		font: inherit;
-		font-size: clamp(1rem, 1.2vw, 1.15rem);
-		line-height: 1;
-		cursor: pointer;
-		transition:
-			background-color 160ms ease,
-			color 160ms ease,
-			border-color 160ms ease;
+		text-align: left;
+		cursor: zoom-in;
 	}
-	.start-button:hover:not(:disabled),
-	.start-button:focus-visible:not(:disabled) {
-		border-color: #fff;
-		background: #f5f7f2;
-		color: #062d36;
+	.photo-button img {
+		display: block;
+		width: 100%;
+		height: auto;
+		transition: opacity 200ms ease;
 	}
-	.start-button:focus-visible {
-		outline: 2px solid #fff;
-		outline-offset: 4px;
+	.photo-button:hover img {
+		opacity: 0.84;
 	}
-	.start-button:disabled {
-		cursor: wait;
-		opacity: 0.55;
+	.photo-button span {
+		display: block;
+		padding-top: 0.7rem;
+		color: var(--muted);
+		font-size: 0.88rem;
 	}
-	.credit {
-		position: absolute;
-		z-index: 10;
-		left: clamp(1.5rem, 3vw, 3rem);
-		bottom: clamp(1.5rem, 3vw, 3rem);
-		margin: 0;
-		color: rgba(245, 247, 242, 0.7);
-		font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
-		font-size: clamp(0.8rem, 1vw, 0.95rem);
-		transition: opacity 180ms ease;
+	.photo-button:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 5px;
 	}
-	.credit a {
-		color: rgba(245, 247, 242, 0.9);
-		text-decoration: underline;
-		text-decoration-color: rgba(245, 247, 242, 0.45);
-		text-underline-offset: 0.18em;
-		text-decoration-thickness: 1px;
-		transition: color 160ms ease, text-decoration-color 160ms ease;
+	@media (max-width: 760px) {
+		.intro {
+			grid-template-columns: 1fr;
+			gap: 24px;
+		}
 	}
-	.credit a:hover,
-	.credit a:focus-visible {
-		color: #fff;
-		text-decoration-color: currentColor;
+	@media (max-width: 680px) {
+		.hero {
+			min-height: max(100svh, 480px);
+		}
+		.hero-image {
+			object-position: 70% center;
+		}
+		.hero-shade {
+			background:
+				linear-gradient(180deg, rgba(0, 0, 0, 0.56) 0%, rgba(0, 0, 0, 0.5) 43%, transparent 65%),
+				linear-gradient(0deg, rgba(0, 0, 0, 0.2), transparent 48%);
+		}
+		.hero-copy {
+			top: max(128px, 22%);
+			left: 1.5rem;
+			transform: none;
+		}
+		h1 {
+			font-size: clamp(3rem, 15vw, 6.2rem);
+		}
+		.hero-link {
+			margin-top: 1.6rem;
+		}
+		.photo-grid {
+			grid-template-columns: 1fr;
+			gap: 2.5rem;
+		}
 	}
-	.copyright {
-		display: inline-block;
-		margin-top: 0.35rem;
-		color: rgba(245, 247, 242, 0.5);
-		font-size: 0.85em;
-	}
-	.transition-name {
-		position: absolute;
-		z-index: 15;
-		top: 50%;
-		left: 50%;
-		margin: 0;
-		color: #fff;
-		font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
-		font-size: clamp(2.5rem, 5vw, 5.5rem);
-		letter-spacing: -0.06em;
-		line-height: 1;
-		transform: translate(-50%, -50%);
-		animation: transition-name-in 220ms ease both;
-	}
-	@keyframes transition-name-in {
+	@keyframes hero-copy-in {
 		from {
 			opacity: 0;
 		}
@@ -224,38 +219,11 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.intro,
-		.credit,
-		.copyright,
-		.transition-name {
-			transition-duration: 0ms;
-			animation-duration: 0ms;
-		}
-	}
-	@media (max-width: 640px) {
-		.intro {
-			top: clamp(3rem, 10vh, 5rem);
-			left: 50%;
-			width: calc(100% - 3rem);
-			text-align: center;
-			transform: translateX(-50%);
-		}
-		.start-button {
-			margin-top: 4rem;
-		}
-		.transition-name {
-			max-width: calc(100vw - 2rem);
-			font-size: clamp(1.75rem, 8vw, 2.2rem);
-			white-space: nowrap;
-		}
-	}
-	@media (min-width: 641px) and (max-height: 740px) {
-		.intro {
-			top: clamp(1.25rem, 4vh, 2.25rem);
-			left: clamp(1.5rem, 4vw, 3.5rem);
-		}
-		.start-button {
-			margin-top: clamp(1.5rem, 4vh, 2.5rem);
+		*,
+		*::before,
+		*::after {
+			transition-duration: 0.01ms !important;
+			animation-duration: 0.01ms !important;
 		}
 	}
 </style>

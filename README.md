@@ -3,11 +3,11 @@
 
 ![Showcase preview](static/readme-showcase-mobile.png)
 
-This is a portfolio site for my good friend Jayden, a photographer. I made it to learn 3D web design with Threlte and to give visitors a way to walk through Jayden's images instead of only scrolling past them. It is a project for [#beest](https://hackclub.com/).
+This is a portfolio site for my good friend Jayden, a photographer. The homepage has a photo hero, a short biography and selected photographs. The Fotografie menu link opens a 3D gallery where visitors can walk through his nature and urban photographs. It is a project for [#beest](https://hackclub.com/).
 
 the showcase is a 3d walking camera but the rotation pivot i put behind the camera so when walking left you right instead of being able to get lossed, you always rotate in a cirle when walking side to side.
 
-I made the contact page like an analoge film getting loaded into a camera with DOM connected html on the glb model, this was only recently added to browsers
+The Over and Contact pages share the same full-screen menu. Biography, featured photos and contact links are editable in `src/lib/site/content.ts`. The email address is example content.
 
 Most of the Ideas came to me at a friday night at 2am wide awake in bed XD
 
@@ -26,7 +26,7 @@ npm run dev
 
 ## Deploy with Docker
 
-Create a local `.env` from the example and add the contact details:
+Create a local `.env` from the example:
 
 ```bash
 cp .env.example .env
