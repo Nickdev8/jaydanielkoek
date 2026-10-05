@@ -14,7 +14,6 @@
 
 	<nav aria-label="Page not found navigation">
 		<a href="/">Return home</a>
-		<a href="/contact">Contact Jayden</a>
 	</nav>
 </main>
 
@@ -27,9 +26,9 @@
 	}
 	main {
 		display: grid;
-		min-height: 100svh;
+		min-height: 80vh;
 		align-content: center;
-		padding: clamp(2rem, 8vw, 8rem);
+		padding: clamp(2rem, 8vw, 8rem) 20w;
 		background: radial-gradient(ellipse at 70% 50%, #073c47 0%, #020d10 62%);
 		color: #f5f7f2;
 		font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;

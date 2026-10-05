@@ -33,7 +33,7 @@
 		isLeaving = true;
 		await wait(600);
 		sessionStorage.setItem('showcase-controls-hint', 'true');
-		goto('/showcase/nature');
+		goto('/showcase/all');
 	}
 
 	function onready() {

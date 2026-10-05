@@ -7,33 +7,15 @@
 	let { children } = $props();
 
 	const metadata = $derived.by(() => {
-		const pathname = page.url.pathname;
-		const category = pathname.match(/^\/showcase\/(nature|urban)$/)?.[1];
-		const isLensSelector = pathname.startsWith('/lenses/');
+		const pathname: string = page.url.pathname;
+		const isShowcase = pathname === '/showcase' || pathname === '/showcase/all';
 		const isModelCredits = pathname === '/model-credits';
 
-		if (category) {
-			const label = category[0].toUpperCase() + category.slice(1);
+		if (isShowcase) {
 			return {
-				title: `Jayden Daniel Koek, ${label} photography`,
-				description: `Explore ${label.toLowerCase()} photography by Jayden Daniel Koek in an interactive 3D gallery.`,
+				title: 'Jayden Daniel Koek, Photography',
+				description: 'Explore photography by Jayden Daniel Koek in an interactive 3D gallery.',
 				indexable: true
-			};
-		}
-
-		if (pathname === '/contact') {
-			return {
-				title: 'Jayden Daniel Koek, Contact',
-				description: 'Contact photographer Jayden Daniel Koek for photography enquiries.',
-				indexable: true
-			};
-		}
-
-		if (isLensSelector) {
-			return {
-				title: 'Jayden Daniel Koek, Choose a category',
-				description: 'Choose a photography category in Jayden Daniel Koek’s interactive portfolio.',
-				indexable: false
 			};
 		}
 
@@ -48,7 +30,7 @@
 		return {
 			title: 'Jayden Daniel Koek, Photographer',
 			description:
-				'Photography portfolio of Jayden Daniel Koek. Explore urban and nature photographs in an interactive 3D showcase.',
+				'Photography portfolio of Jayden Daniel Koek in an interactive 3D showcase.',
 			indexable: true
 		};
 	});
@@ -98,16 +80,6 @@
 {@render children()}
 
 <nav class="utility-nav" aria-label="Utility navigation">
-	{#if page.url.pathname !== '/contact'}
-		<a class="utility-link" href="/contact" aria-label="Contact">
-			<svg viewBox="0 0 24 24" aria-hidden="true">
-				<rect x="3" y="5" width="18" height="14" rx="1" />
-				<path d="m3 6 9 7 9-7" />
-			</svg>
-			<span>Contact</span>
-		</a>
-	{/if}
-
 	{#if page.url.pathname !== '/'}
 		<a class="utility-link" href="/" aria-label="Home">
 			<svg viewBox="0 0 24 24" aria-hidden="true">

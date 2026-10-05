@@ -1,1 +1,1 @@
-<!-- /showcase redirects to /showcase/urban in +page.ts. -->
+<!-- /showcase redirects to the merged gallery in +page.ts. -->

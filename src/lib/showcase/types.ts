@@ -7,6 +7,5 @@ export type Poster = {
 export type ShowcaseCategory = {
 	id: string;
 	label: string;
-	lens: number;
 	posters: Poster[];
 };

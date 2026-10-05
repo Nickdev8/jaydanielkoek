@@ -20,7 +20,6 @@ const isCategory = (value: unknown): value is ShowcaseCategory => {
 	return (
 		typeof category.id === 'string' &&
 		typeof category.label === 'string' &&
-		typeof category.lens === 'number' &&
 		Array.isArray(category.posters) &&
 		category.posters.every(isPoster)
 	);

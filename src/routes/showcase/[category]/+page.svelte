@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { Canvas } from '@threlte/core';
 	import { onMount } from 'svelte';
 	import type { ShowcaseCategory } from '$lib/showcase/types';
@@ -20,7 +19,6 @@
 	const movementKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
 	const joystickRadius = 38;
 
-	const openLensSelector = () => goto(`/lenses/${data.category.id}`);
 	const onready = () => {
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
@@ -77,11 +75,6 @@
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (movementKeys.has(event.code)) showControlsHint = false;
 
-			if (event.code !== 'Space' || event.repeat) return;
-			if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLAnchorElement) return;
-
-			event.preventDefault();
-			openLensSelector();
 		};
 
 		const onPointerDown = (event: PointerEvent) => {
@@ -127,19 +120,13 @@
 	<section class="screen-reader-context">
 		<h1>{data.category.label} photography by Jayden Daniel Koek</h1>
 		<p>
-			An interactive 3D gallery of Jayden Daniel Koek’s {data.category.label.toLowerCase()} photography.
+			An interactive 3D gallery of Jayden Daniel Koek’s photography.
 		</p>
-		<a href="/contact">Contact Jayden Daniel Koek</a>
 	</section>
 
 	<Canvas>
 		<Scene category={data.category} {onready} {joystickTurn} {joystickMove} />
 	</Canvas>
-
-	<button class="change-category" onclick={openLensSelector}>
-		<span>Change category</span>
-		<kbd>Space</kbd>
-	</button>
 
 	<div
 		class:active={joystickPointerId !== undefined}
@@ -228,46 +215,6 @@
 	.mobile-controls {
 		display: none;
 	}
-	.change-category {
-		position: absolute;
-		z-index: 1;
-		bottom: clamp(1.5rem, 4vw, 3rem);
-		left: clamp(1.25rem, 3vw, 3rem);
-		display: inline-flex;
-		align-items: center;
-		gap: 0.8rem;
-		padding: 0.75rem 0.9rem;
-		border: 1px solid rgba(245, 247, 242, 0.8);
-		border-radius: 8px;
-		background: rgba(8, 12, 21, 0.5);
-		color: #f5f7f2;
-		font: 0.95rem/1 system-ui, sans-serif;
-		cursor: pointer;
-		margin: 0;
-		transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
-	}
-	.change-category kbd {
-		padding: 0.2rem 0.32rem;
-		border: 1px solid rgba(245, 247, 242, 0.36);
-		border-radius: 3px;
-		color: rgba(245, 247, 242, 0.72);
-		font: 0.68rem/1 system-ui, sans-serif;
-	}
-	.change-category:hover,
-	.change-category:focus-visible {
-		border-color: #fff;
-		background: #f5f7f2;
-		color: #080c15;
-	}
-	.change-category:hover kbd,
-	.change-category:focus-visible kbd {
-		border-color: rgba(8, 12, 21, 0.4);
-		color: inherit;
-	}
-	.change-category:focus-visible {
-		outline: 2px solid #fff;
-		outline-offset: 4px;
-	}
 	.joystick {
 		display: none;
 	}
@@ -275,13 +222,6 @@
 		.controls-hint {
 			top: max(4.5rem, env(safe-area-inset-top));
 			bottom: auto;
-		}
-		.change-category {
-			left: max(1.25rem, env(safe-area-inset-left));
-			bottom: max(1.75rem, env(safe-area-inset-bottom));
-		}
-		.change-category kbd {
-			display: none;
 		}
 		.desktop-controls {
 			display: none;
