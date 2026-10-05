@@ -1,75 +1,32 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	const notFound = $derived(page.status === 404);
+</script>
+
 <svelte:head>
-	<title>Jayden Daniel Koek — Page not found</title>
-	<meta
-		name="description"
-		content="The requested page could not be found on Jayden Daniel Koek’s photography portfolio."
-	/>
+	<title>{notFound ? 'Pagina niet gevonden' : 'Er ging iets mis'} | Jayden Daniel Koek</title>
 	<meta name="robots" content="noindex, follow" />
 </svelte:head>
 
-<main>
-	<p class="status">404</p>
-	<h1>Page not found</h1>
-	<p class="message">This photograph is not in the archive.</p>
-
-	<nav aria-label="Page not found navigation">
-		<a href="/">Return home</a>
-	</nav>
+<main class="error-page">
+	<section class="page-shell">
+		<p>{page.status}</p>
+		<h1>{notFound ? 'Pagina niet gevonden' : 'Er ging iets mis'}</h1>
+		<p>{notFound ? 'Deze pagina bestaat niet.' : 'Probeer het later opnieuw.'}</p>
+		<a class="text-link" href="/">Terug naar home</a>
+	</section>
 </main>
 
 <style>
-	:global(html),
-	:global(body) {
-		min-height: 100%;
-		margin: 0;
-		background: #020d10;
-	}
-	main {
-		display: grid;
-		min-height: 80vh;
-		align-content: center;
-		padding: clamp(2rem, 8vw, 8rem) 20w;
-		background: radial-gradient(ellipse at 70% 50%, #073c47 0%, #020d10 62%);
-		color: #f5f7f2;
-		font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
-	}
-	.status {
-		margin: 0 0 1rem;
-		color: rgba(245, 247, 242, 0.6);
-		font-family: system-ui, sans-serif;
-		font-size: 0.85rem;
-		letter-spacing: 0.08em;
+	.error-page {
+		min-height: 100svh;
+		padding-block: max(160px, 16vh) 80px;
+		background: var(--paper);
 	}
 	h1 {
-		max-width: 10ch;
-		margin: 0;
-		font-size: clamp(3rem, 9vw, 8rem);
-		font-weight: 400;
-		letter-spacing: -0.07em;
-		line-height: 0.82;
-	}
-	.message {
-		margin: 2rem 0 0;
-		font-size: clamp(1.1rem, 2vw, 1.5rem);
-	}
-	nav {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1.25rem;
-		margin-top: 2.5rem;
-	}
-	a {
-		color: inherit;
-		font-size: 1.05rem;
-		text-decoration: underline;
-		text-underline-offset: 0.2em;
-	}
-	a:hover,
-	a:focus-visible {
-		color: #fff;
-	}
-	a:focus-visible {
-		outline: 1px solid #fff;
-		outline-offset: 4px;
+		font-size: clamp(48px, 7vw, 96px);
+		line-height: 1.1;
+		margin: 24px 0;
+		max-width: 12ch;
 	}
 </style>

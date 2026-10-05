@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
 
-const publicPaths = ['/', '/showcase/all'];
+const publicPaths = ['/', '/showcase/all', '/over', '/contact'];
 
 export const GET: RequestHandler = ({ url }) => {
 	const urls = publicPaths

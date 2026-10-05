@@ -3,6 +3,7 @@
 	import { ContactShadows } from '@threlte/extras';
 	import { Color } from 'three';
 	import type { ShowcaseCategory } from '$lib/showcase/types';
+	import { distanceByStep } from '$lib/showcase/layout';
 
 	import SandFloor from './SandFloor.svelte';
 	import CameraController from './CameraController.svelte';
@@ -11,29 +12,25 @@
 	let {
 		category,
 		onready,
-		joystickTurn = 0,
-		joystickMove = 0
+		controlsEnabled = true,
+		cameraPosition = $bindable<[number, number, number]>([0, 0, 0]),
+		cameraRotation = $bindable(0)
 	}: {
 		category: ShowcaseCategory;
 		onready?: () => void;
-		joystickTurn?: number;
-		joystickMove?: number;
+		controlsEnabled?: boolean;
+		cameraPosition?: [number, number, number];
+		cameraRotation?: number;
 	} = $props();
-	const distanceByStep = [0, 5.63, 13, 20, 27];
 	const backgroundColor = '#080c15';
 	const fogDensity = 0.075;
 	const cameraStartRotation = 0;
 	const floorHeight = -1.4;
 	const { renderer, scene, dpr, size } = useThrelte();
 	const isMobileViewport = $derived(size.current.width < 768);
-	const maximumCameraStep = $derived(isMobileViewport ? 2.2 : 2.4);
-	const maximumCameraDistance = $derived(
-		distanceByStep[2] + (distanceByStep[3] - distanceByStep[2]) * (maximumCameraStep - 2)
-	);
+	const maximumCameraDistance = distanceByStep[3];
 
-	let cameraPosition = $state<[number, number, number]>([0, 0, 0]);
 	let normalCameraPosition = $state<[number, number, number]>([0, 0, 0]);
-	let cameraRotation = $state(0);
 	let dustDrift = $state(0);
 	let postersReady = $state(false);
 	let hasReportedReady = false;
@@ -77,10 +74,9 @@
 <T.FogExp2 attach="fog" args={[backgroundColor, fogDensity]} />
 
 <CameraController
+	{controlsEnabled}
 	{maximumCameraDistance}
 	{cameraStartRotation}
-	{joystickTurn}
-	{joystickMove}
 	bind:cameraPosition
 	bind:normalCameraPosition
 	bind:cameraRotation
@@ -114,11 +110,7 @@
 /> -->
 
 <SandFloor {floorHeight} radius={100} {backgroundColor} {fogDensity} />
-<ReflectiveSurface
-	position={[0, floorHeight + 0.015, 0]}
-	brightness={0.45}
-	{backgroundColor}
-/>
+<ReflectiveSurface position={[0, floorHeight + 0.015, 0]} brightness={0.45} {backgroundColor} />
 
 <T.Mesh position={[0, floorHeight + 0.01, 0]} rotation.x={-Math.PI / 2}>
 	<T.CircleGeometry args={[3, 64]} />

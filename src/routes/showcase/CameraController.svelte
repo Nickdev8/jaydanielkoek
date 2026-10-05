@@ -15,16 +15,14 @@
 	let {
 		maximumCameraDistance,
 		cameraStartRotation = 0,
-		joystickTurn = 0,
-		joystickMove = 0,
+		controlsEnabled = true,
 		cameraPosition = $bindable([0, 0, 0] as [number, number, number]),
 		normalCameraPosition = $bindable([0, 0, 0] as [number, number, number]),
 		cameraRotation = $bindable(0)
 	}: {
 		maximumCameraDistance: number;
 		cameraStartRotation?: number;
-		joystickTurn?: number;
-		joystickMove?: number;
+		controlsEnabled?: boolean;
 		cameraPosition?: [number, number, number];
 		normalCameraPosition?: [number, number, number];
 		cameraRotation?: number;
@@ -84,6 +82,7 @@
 	let orbitMarker = $state.raw<Mesh>();
 	let orbitDirection = $state.raw<Group>();
 	let hasAppliedStartRotation = false;
+	const blockedKeys = new Set<string>();
 
 	const orbitWorldPosition = new Vector3();
 	const orbitWorldRotation = new Quaternion();
@@ -122,6 +121,7 @@
 	};
 
 	keyboard.on('keyup', (event) => {
+		if (!controlsEnabled) return;
 		KeyboardControls.forEach((KeyboardControlCombination) => {
 			if (KeyboardControlCombination.includes(event.key.toLocaleLowerCase())) {
 				event.preventDefault();
@@ -130,8 +130,13 @@
 	});
 
 	onMount(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (!controlsEnabled) blockedKeys.add(event.key.toLocaleLowerCase());
+		};
+		const onKeyUp = (event: KeyboardEvent) => blockedKeys.delete(event.key.toLocaleLowerCase());
 		const onPointerDown = (event: PointerEvent) => {
 			if (
+				!controlsEnabled ||
 				orbitDebug.enabled ||
 				event.button !== 0 ||
 				!(event.target instanceof HTMLCanvasElement)
@@ -147,7 +152,7 @@
 		};
 
 		const onPointerMove = (event: PointerEvent) => {
-			if (!isDragging) return;
+			if (!controlsEnabled || !isDragging) return;
 			registerInteraction();
 
 			const horizontalOffset = touchDragging
@@ -177,28 +182,25 @@
 		};
 
 		const onWheel = (event: WheelEvent) => {
-			if (orbitDebug.enabled || !(event.target instanceof HTMLCanvasElement)) return;
+			if (!controlsEnabled || orbitDebug.enabled || !(event.target instanceof HTMLCanvasElement))
+				return;
 
 			event.preventDefault();
 			registerInteraction();
-			trackpadTurnInput = clamp(
-				trackpadTurnInput - event.deltaX * trackpadSensitivity,
-				-1,
-				1
-			);
-			trackpadMoveInput = clamp(
-				trackpadMoveInput + event.deltaY * trackpadSensitivity,
-				-1,
-				1
-			);
+			trackpadTurnInput = clamp(trackpadTurnInput - event.deltaX * trackpadSensitivity, -1, 1);
+			trackpadMoveInput = clamp(trackpadMoveInput + event.deltaY * trackpadSensitivity, -1, 1);
 		};
 
+		window.addEventListener('keydown', onKeyDown);
+		window.addEventListener('keyup', onKeyUp);
 		window.addEventListener('pointerdown', onPointerDown);
 		window.addEventListener('pointermove', onPointerMove);
 		window.addEventListener('pointerup', stopDragging);
 		window.addEventListener('pointercancel', stopDragging);
 		window.addEventListener('wheel', onWheel, { passive: false });
 		return () => {
+			window.removeEventListener('keydown', onKeyDown);
+			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('pointerdown', onPointerDown);
 			window.removeEventListener('pointermove', onPointerMove);
 			window.removeEventListener('pointerup', stopDragging);
@@ -210,6 +212,22 @@
 	useTask(
 		(delta) => {
 			if (!pivot || !camera) return;
+			if (!controlsEnabled) {
+				// A held key must be released before it can move the camera after closing the menu.
+				for (const keys of KeyboardControls) {
+					for (const key of keys) {
+						if (keyboard.key(key).pressed) blockedKeys.add(key.toLocaleLowerCase());
+					}
+				}
+				angularVelocity = movementVelocity = 0;
+				dragTurnInput = dragMoveInput = dragTurnTarget = dragMoveTarget = 0;
+				trackpadTurnInput = trackpadMoveInput = 0;
+				isDragging = touchDragging = false;
+				secondsSinceInteraction = 0;
+				return;
+			}
+			const pressed = (key: string) =>
+				!blockedKeys.has(key.toLocaleLowerCase()) && keyboard.key(key).pressed;
 
 			let turnDirection = 0;
 			let moveDirection = 0;
@@ -217,26 +235,25 @@
 			KeyboardControls.forEach((KeyboardControlCombination) => {
 				turnDirection = clamp(
 					turnDirection +
-						Number(keyboard.key(KeyboardControlCombination[3]).pressed) -
-						Number(keyboard.key(KeyboardControlCombination[2]).pressed),
+						Number(pressed(KeyboardControlCombination[3])) -
+						Number(pressed(KeyboardControlCombination[2])),
 					-1,
 					1
 				);
 				moveDirection = clamp(
 					moveDirection +
-						Number(keyboard.key(KeyboardControlCombination[0]).pressed) -
-						Number(keyboard.key(KeyboardControlCombination[1]).pressed),
+						Number(pressed(KeyboardControlCombination[0])) -
+						Number(pressed(KeyboardControlCombination[1])),
 					-1,
 					1
 				);
 			});
 			const keyboardIsMoving = turnDirection !== 0 || moveDirection !== 0;
-			const joystickIsMoving = Math.abs(joystickTurn) > 0.01 || Math.abs(joystickMove) > 0.01;
-			if (keyboardIsMoving || joystickIsMoving) registerInteraction();
+			if (keyboardIsMoving) registerInteraction();
 			else secondsSinceInteraction += delta;
 
-			turnDirection = clamp(turnDirection + dragTurnInput + trackpadTurnInput + joystickTurn, -1, 1);
-			moveDirection = clamp(moveDirection + dragMoveInput + trackpadMoveInput + joystickMove, -1, 1);
+			turnDirection = clamp(turnDirection + dragTurnInput + trackpadTurnInput, -1, 1);
+			moveDirection = clamp(moveDirection + dragMoveInput + trackpadMoveInput, -1, 1);
 			if (moveDirection > 0) hasMovedForward = true;
 			dragTurnInput = damp(dragTurnInput, dragTurnTarget, dragResponse, delta);
 			dragMoveInput = damp(dragMoveInput, dragMoveTarget, dragResponse, delta);
@@ -254,8 +271,7 @@
 			const outerRingTurnSpeed =
 				innerTurnSpeed + (outerTurnSpeed - innerTurnSpeed) * distanceProgress;
 			const turnSpeed =
-				radiusAwareTurnSpeed * adaptiveTurnBlend +
-				outerRingTurnSpeed * (1 - adaptiveTurnBlend);
+				radiusAwareTurnSpeed * adaptiveTurnBlend + outerRingTurnSpeed * (1 - adaptiveTurnBlend);
 			const isIdle =
 				!orbitDebug.enabled && !hasMovedForward && secondsSinceInteraction >= idleDelay;
 			const targetAngularVelocity = isIdle ? idleTurnSpeed : turnDirection * turnSpeed;
@@ -311,7 +327,7 @@
 	);
 </script>
 
-	<T.Group bind:ref={pivot}>
+<T.Group bind:ref={pivot}>
 	<T.Group bind:ref={camera} position={[0, 0, -turnPivotDistance]}>
 		<T.PerspectiveCamera bind:ref={viewerCamera} makeDefault fov={responsiveFov} />
 	</T.Group>
@@ -324,7 +340,7 @@
 		rotation={orbitStartRotation}
 		fov={responsiveFov}
 	>
-		<OrbitControls enableDamping enableKeys={false} target.y={0} />
+		<OrbitControls enabled={controlsEnabled} enableDamping enableKeys={false} target.y={0} />
 	</T.PerspectiveCamera>
 
 	<T.Mesh bind:ref={orbitMarker} position={orbitStartPosition}>
