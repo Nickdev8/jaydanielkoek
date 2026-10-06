@@ -10,6 +10,8 @@ export const siteContent = {
 			src: '/images/IJSVOGEL.jpg',
 			alt: 'Een ijsvogel',
 			caption: 'IJsvogel',
+			description:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
 			width: 1440,
 			height: 1022
 		},
@@ -17,6 +19,8 @@ export const siteContent = {
 			src: '/images/REDPANDA.jpg',
 			alt: 'Een rode panda',
 			caption: 'Rode panda',
+			description:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
 			width: 1362,
 			height: 906
 		},
@@ -24,6 +28,8 @@ export const siteContent = {
 			src: '/images/Hooglandjezijprofiel.jpg',
 			alt: 'Een hooglandrund van opzij',
 			caption: 'Hooglandrund',
+			description:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
 			width: 1440,
 			height: 960
 		},
@@ -31,6 +37,8 @@ export const siteContent = {
 			src: '/images/DARBRIDGE.jpg',
 			alt: 'Een brug in de stad',
 			caption: 'Brug',
+			description:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
 			width: 1440,
 			height: 960
 		},
@@ -38,6 +46,8 @@ export const siteContent = {
 			src: '/images/VISSER.jpg',
 			alt: 'Een visser aan het water',
 			caption: 'Visser',
+			description:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
 			width: 1440,
 			height: 1800
 		},
@@ -45,6 +55,8 @@ export const siteContent = {
 			src: '/images/nowarwomanprotests.jpg',
 			alt: 'Een vrouw bij een protest',
 			caption: 'Protest',
+			description:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
 			width: 1440,
 			height: 1800
 		}

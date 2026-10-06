@@ -1,16 +1,7 @@
 <script lang="ts">
-	import PhotoViewer from '$lib/components/PhotoViewer.svelte';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
 	import InlineCamera from '$lib/components/InlineCamera.svelte';
 	import { siteContent } from '$lib/site/content';
-
-	let selectedIndex = $state<number | null>(null);
-	let opener = $state<HTMLElement | null>(null);
-
-	function openPhoto(index: number, event: MouseEvent) {
-		opener = event.currentTarget as HTMLElement;
-		selectedIndex = index;
-	}
 </script>
 
 <main class="home-page">
@@ -36,32 +27,34 @@
 		<InlineCamera />
 	</section>
 
-	<section class="selected page-shell" aria-label="Een selectie foto's">
-		<div class="photo-grid">
-			{#each siteContent.featured as photo, index}
-				<button
-					class="photo-button"
-					type="button"
-					aria-label={`Bekijk foto: ${photo.alt}`}
-					onclick={(event) => openPhoto(index, event)}
-				>
-					<img
-						src={photo.src}
-						alt={photo.alt}
-						width={photo.width}
-						height={photo.height}
-						loading="lazy"
-					/>
-					<span>{photo.caption}</span>
-				</button>
-			{/each}
+	<section class="projects" aria-label="Projecten">
+		<div class="page-shell">
+			<div class="project-list">
+				{#each siteContent.featured as project, index}
+					<article class="project">
+						<img
+							class="project-image"
+							src={project.src}
+							alt={project.alt}
+							width={project.width}
+							height={project.height}
+							loading="lazy"
+						/>
+						<div class="project-copy">
+							<div class="project-number" aria-label={`Project ${index + 1}`}>
+								<span>{String(index + 1).padStart(2, '0')}</span>
+							</div>
+							<h2>{project.caption}</h2>
+							<p>{project.description}</p>
+						</div>
+					</article>
+				{/each}
+			</div>
+			<a class="all-photos text-link" href="/showcase/all">Bekijk alle fotografie</a>
 		</div>
-		<a class="all-photos text-link" href="/showcase/all">Bekijk alle fotografie</a>
 	</section>
 	<SiteFooter />
 </main>
-
-<PhotoViewer photos={siteContent.featured} bind:selectedIndex bind:opener />
 
 <style>
 	.home-page {
@@ -134,47 +127,64 @@
 		font-size: clamp(2rem, 3.3vw, 3.6rem);
 		line-height: 1.12;
 	}
-	.selected {
-		padding-bottom: clamp(5rem, 10vw, 9rem);
+	.projects {
+		padding-block: clamp(3rem, 6vw, 5rem) clamp(5rem, 10vw, 9rem);
+		background: #fff;
 	}
 	.all-photos {
 		display: inline-block;
 		margin-top: clamp(3rem, 6vw, 5rem);
 	}
-	.photo-grid {
+	.project-list {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 4vw, 4rem);
-		align-items: start;
+		gap: clamp(3rem, 7vw, 6rem);
 	}
-	.photo-button {
-		display: block;
+	.project {
+		display: grid;
+		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+		align-items: center;
+	}
+	.project-image {
 		width: 100%;
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: inherit;
-		text-align: left;
-		cursor: zoom-in;
+		height: clamp(260px, 35vw, 460px);
+		object-fit: cover;
+		mask-image: linear-gradient(to right, #000 60%, transparent 100%);
 	}
-	.photo-button img {
-		display: block;
-		width: 100%;
-		height: auto;
-		transition: opacity 200ms ease;
+	.project-copy {
+		position: relative;
+		margin-left: clamp(-4rem, -5vw, -1rem);
+		padding: clamp(2rem, 5vw, 5rem) 0 1.5rem;
 	}
-	.photo-button:hover img {
-		opacity: 0.84;
-	}
-	.photo-button span {
-		display: block;
-		padding-top: 0.7rem;
+	.project-number {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		max-width: 22rem;
+		margin-bottom: 1.75rem;
 		color: var(--muted);
-		font-size: 0.88rem;
+		font-size: 0.8rem;
+		font-variant-numeric: tabular-nums;
 	}
-	.photo-button:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: 5px;
+	.project-number::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: #d9dcd7;
+	}
+	.project-copy h2 {
+		margin: 0 0 1rem;
+		font-size: clamp(2rem, 4.5vw, 4.5rem);
+		font-style: italic;
+		font-synthesis: style;
+		letter-spacing: -0.035em;
+		line-height: 1.1;
+	}
+	.project-copy p {
+		max-width: 36ch;
+		margin: 0;
+		color: var(--muted);
+		font-size: clamp(0.95rem, 1.25vw, 1.1rem);
+		line-height: 1.65;
 	}
 	@media (max-width: 760px) {
 		.intro {
@@ -205,9 +215,28 @@
 		.hero-link {
 			margin-top: 1.6rem;
 		}
-		.photo-grid {
-			grid-template-columns: 1fr;
-			gap: 2.5rem;
+		.project {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+		.project-copy {
+			margin-left: -0.5rem;
+			padding-top: 1.5rem;
+		}
+		.project-number {
+			margin-bottom: 1rem;
+		}
+		.project-image {
+			height: 100%;
+			min-height: 320px;
+			mask-image: linear-gradient(to right, #000 55%, transparent 100%);
+		}
+		.project-copy h2 {
+			font-size: clamp(1.4rem, 5vw, 2rem);
+			overflow-wrap: anywhere;
+		}
+		.project-copy p {
+			font-size: 0.875rem;
+			line-height: 1.5;
 		}
 	}
 	@keyframes hero-copy-in {
